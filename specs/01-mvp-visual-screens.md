@@ -1,6 +1,6 @@
 # SPEC 01 — Maqueta visual del MVP
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** ninguna (primera spec del proyecto)
 > **Fecha:** 2026-07-28
 > **Objetivo:** Portar las seis pantallas del template de `references/templates/` a rutas de App Router con datos simulados, sin lógica de juego ni backend.
