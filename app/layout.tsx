@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, JetBrains_Mono, Courier_Prime } from "next/font/google";
+import Footer from "@/components/footer";
+import Nav from "@/components/nav";
+import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
 const pressStart = Press_Start_2P({
@@ -7,6 +10,7 @@ const pressStart = Press_Start_2P({
   subsets: ["latin"],
   weight: "400",
   display: "swap",
+  fallback: ["system-ui", "monospace"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -14,6 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
   display: "swap",
+  fallback: ["Courier New", "monospace"],
 });
 
 const courierPrime = Courier_Prime({
@@ -21,6 +26,7 @@ const courierPrime = Courier_Prime({
   subsets: ["latin"],
   weight: ["400", "700"],
   display: "swap",
+  fallback: ["Courier New", "monospace"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +48,13 @@ export default function RootLayout({
       <body>
         <div className="av-bg" aria-hidden="true" />
         <div className="av-noise" aria-hidden="true" />
-        <div className="av-root">{children}</div>
+        <SessionProvider>
+          <div className="av-root">
+            <Nav />
+            {children}
+            <Footer />
+          </div>
+        </SessionProvider>
       </body>
     </html>
   );

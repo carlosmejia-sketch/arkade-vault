@@ -1,3 +1,5 @@
+import Library from "@/components/library";
+
 export default function Home() {
   return (
     <main className="av-main fade-in">
@@ -6,11 +8,9 @@ export default function Home() {
         <div className="sub">
           INSERTA UNA MONEDA PARA JUGAR <span className="blink">_</span>
         </div>
-        <div className="detail-actions" style={{ justifyContent: "center" }}>
-          <button className="btn lg pulse">VER BIBLIOTECA</button>
-          <button className="btn lg magenta">SALÓN DE LA FAMA</button>
-        </div>
       </section>
+
+      <Library />
     </main>
   );
 }
