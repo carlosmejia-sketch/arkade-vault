@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, JetBrains_Mono, Courier_Prime } from "next/font/google";
+import Footer from "@/components/footer";
+import Nav from "@/components/nav";
 import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
@@ -44,7 +46,11 @@ export default function RootLayout({
         <div className="av-bg" aria-hidden="true" />
         <div className="av-noise" aria-hidden="true" />
         <SessionProvider>
-          <div className="av-root">{children}</div>
+          <div className="av-root">
+            <Nav />
+            {children}
+            <Footer />
+          </div>
         </SessionProvider>
       </body>
     </html>
