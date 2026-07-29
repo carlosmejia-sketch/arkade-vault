@@ -10,6 +10,7 @@ const pressStart = Press_Start_2P({
   subsets: ["latin"],
   weight: "400",
   display: "swap",
+  fallback: ["system-ui", "monospace"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -17,6 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
   display: "swap",
+  fallback: ["Courier New", "monospace"],
 });
 
 const courierPrime = Courier_Prime({
@@ -24,6 +26,7 @@ const courierPrime = Courier_Prime({
   subsets: ["latin"],
   weight: ["400", "700"],
   display: "swap",
+  fallback: ["Courier New", "monospace"],
 });
 
 export const metadata: Metadata = {

@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import GameCard from "@/components/game-card";
 import { CATS, GAMES } from "@/lib/games";
 
+// El buscador ignora tildes: "cai" encuentra CAÍDA y "gloton", GLOTÓN.
+const norm = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+
 export default function Library() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("TODOS");
@@ -11,9 +15,7 @@ export default function Library() {
   const filtered = useMemo(
     () =>
       GAMES.filter(
-        (g) =>
-          (cat === "TODOS" || g.cat === cat) &&
-          g.title.toLowerCase().includes(q.toLowerCase()),
+        (g) => (cat === "TODOS" || g.cat === cat) && norm(g.title).includes(norm(q)),
       ),
     [q, cat],
   );

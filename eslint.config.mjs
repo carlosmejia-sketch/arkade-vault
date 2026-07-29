@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Plantillas del template original: JSX suelto que se carga por <script>
+    // y asume React como global del navegador.
+    "references/**",
   ]),
 ]);
 
