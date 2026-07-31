@@ -14,6 +14,7 @@ export default function Nav() {
   // "Biblioteca" cubre /biblioteca y todo el árbol de /juegos (detalle y reproductor).
   const libraryActive = pathname === "/biblioteca" || pathname.startsWith("/juegos");
   const hallActive = pathname === "/salon";
+  const aboutActive = pathname === "/acerca-de";
   const authActive = pathname === "/acceso";
 
   const close = () => setOpen(false);
@@ -36,6 +37,9 @@ export default function Nav() {
           </Link>
           <Link className={hallActive ? "active" : ""} href="/salon">
             Salón de la Fama
+          </Link>
+          <Link className={aboutActive ? "active" : ""} href="/acerca-de">
+            Acerca de
           </Link>
         </div>
         <div className="spacer"></div>
@@ -77,6 +81,9 @@ export default function Nav() {
         </Link>
         <Link className={hallActive ? "active" : ""} href="/salon" onClick={close}>
           Salón de la Fama
+        </Link>
+        <Link className={aboutActive ? "active" : ""} href="/acerca-de" onClick={close}>
+          Acerca de
         </Link>
         <Link className={authActive ? "active" : ""} href="/acceso" onClick={close}>
           {user ? "Cuenta" : "Iniciar Sesión"}
