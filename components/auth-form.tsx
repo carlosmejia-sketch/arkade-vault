@@ -17,7 +17,7 @@ export default function AuthForm() {
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     signIn({ name: (user || "PLAYER1").toUpperCase().slice(0, 10) });
-    router.push("/");
+    router.push("/biblioteca");
   };
 
   return (
@@ -93,7 +93,7 @@ export default function AuthForm() {
           style={{ width: "100%", marginTop: 10 }}
           onClick={() => {
             signOut();
-            router.push("/");
+            router.push("/biblioteca");
           }}
         >
           JUGAR COMO INVITADO

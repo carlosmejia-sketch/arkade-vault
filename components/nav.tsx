@@ -10,8 +10,9 @@ export default function Nav() {
   const pathname = usePathname();
   const { user, signOut } = useSession();
 
-  // "Biblioteca" cubre la raíz y todo el árbol de /juegos (detalle y reproductor).
-  const libraryActive = pathname === "/" || pathname.startsWith("/juegos");
+  const homeActive = pathname === "/";
+  // "Biblioteca" cubre /biblioteca y todo el árbol de /juegos (detalle y reproductor).
+  const libraryActive = pathname === "/biblioteca" || pathname.startsWith("/juegos");
   const hallActive = pathname === "/salon";
   const authActive = pathname === "/acceso";
 
@@ -27,7 +28,10 @@ export default function Nav() {
           </div>
         </Link>
         <div className="links">
-          <Link className={libraryActive ? "active" : ""} href="/">
+          <Link className={homeActive ? "active" : ""} href="/">
+            Inicio
+          </Link>
+          <Link className={libraryActive ? "active" : ""} href="/biblioteca">
             Biblioteca
           </Link>
           <Link className={hallActive ? "active" : ""} href="/salon">
@@ -65,7 +69,10 @@ export default function Nav() {
         <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>
           MENÚ
         </div>
-        <Link className={libraryActive ? "active" : ""} href="/" onClick={close}>
+        <Link className={homeActive ? "active" : ""} href="/" onClick={close}>
+          Inicio
+        </Link>
+        <Link className={libraryActive ? "active" : ""} href="/biblioteca" onClick={close}>
           Biblioteca
         </Link>
         <Link className={hallActive ? "active" : ""} href="/salon" onClick={close}>
