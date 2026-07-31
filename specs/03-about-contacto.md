@@ -1,6 +1,6 @@
 # SPEC 03 — About (Acerca de + Contacto)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 02 (Home landing)
 > **Fecha:** 2026-07-31
 > **Objetivo:** Portar la pantalla About + Contacto de `references/templates/home-about/about.jsx` a `/acerca-de`, agregando el enlace "Acerca de" al Nav y conectando el formulario de contacto a un envío real de correo vía Resend.
