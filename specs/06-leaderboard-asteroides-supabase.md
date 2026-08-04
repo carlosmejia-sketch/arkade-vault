@@ -1,6 +1,6 @@
 # SPEC 06 — Leaderboard real de Asteroides con Supabase
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 04 (configuración base de Supabase), SPEC 05 (motor real de Asteroides)
 > **Fecha:** 2026-08-03
 > **Objetivo:** Reemplazar el leaderboard simulado (`seededScores`) de Asteroides por una tabla real `scores` en Supabase, insertando cada puntaje jugado desde el cliente y mostrando el ranking real tanto en la ficha de detalle como en el Salón de la Fama, sin tocar el mock de los otros 8 juegos.
@@ -122,41 +122,41 @@ En `components/hall-of-fame.tsx`, cuando `tab === "asteroides"`, hacer fetch de 
 
 ### Base de datos
 
-- [ ] La tabla `scores` existe en el proyecto Supabase `rwiimwxdcieqbwcnfavg` con las columnas `id`, `game_id`, `player_name`, `score`, `created_at`.
-- [ ] RLS está habilitada en `scores` con policies que permiten `SELECT` e `INSERT` a `anon`/`authenticated`.
-- [ ] Un `INSERT` con `score <= 0` o `score >= 10000000` es rechazado por el `CHECK` constraint.
+- [x] La tabla `scores` existe en el proyecto Supabase `rwiimwxdcieqbwcnfavg` con las columnas `id`, `game_id`, `player_name`, `score`, `created_at`.
+- [x] RLS está habilitada en `scores` con policies que permiten `SELECT` e `INSERT` a `anon`/`authenticated`.
+- [x] Un `INSERT` con `score <= 0` o `score >= 10000000` es rechazado por el `CHECK` constraint.
 
 ### `lib/scores.ts`
 
-- [ ] `fetchTopScores(supabase, gameId, limit)` devuelve filas ordenadas por `score` descendente, máximo `limit` filas, con `date` en formato `dd/mm/yyyy`.
-- [ ] `insertScore(supabase, entry)` inserta una fila con `game_id`, `player_name` y `score` correctos.
+- [x] `fetchTopScores(supabase, gameId, limit)` devuelve filas ordenadas por `score` descendente, máximo `limit` filas, con `date` en formato `dd/mm/yyyy`.
+- [x] `insertScore(supabase, entry)` inserta una fila con `game_id`, `player_name` y `score` correctos.
 
 ### Guardado desde el reproductor
 
-- [ ] Al presionar "GUARDAR PUNTUACIÓN" en una partida de Asteroides, se crea una fila nueva en `scores` con el alias y puntaje mostrados en el modal.
-- [ ] El guardado en `localStorage` (`saveScore` de `lib/session.tsx`) sigue funcionando igual que hoy, sin duplicarse ni romperse.
-- [ ] Guardar un puntaje en cualquier otro juego (mock) no inserta nada en `scores`.
+- [x] Al presionar "GUARDAR PUNTUACIÓN" en una partida de Asteroides, se crea una fila nueva en `scores` con el alias y puntaje mostrados en el modal.
+- [x] El guardado en `localStorage` (`saveScore` de `lib/session.tsx`) sigue funcionando igual que hoy, sin duplicarse ni romperse.
+- [x] Guardar un puntaje en cualquier otro juego (mock) no inserta nada en `scores`.
 
 ### Ficha de detalle (`/juegos/asteroides`)
 
-- [ ] Con la tabla vacía, se muestra un mensaje de "aún no hay puntajes" en vez de una tabla vacía.
-- [ ] Con al menos una fila real, `Leaderboard` muestra hasta 10 filas ordenadas por puntaje descendente, con datos reales de Supabase.
-- [ ] La ficha de detalle de cualquier otro juego sigue mostrando `seededScores` sin cambios.
+- [x] Con la tabla vacía, se muestra un mensaje de "aún no hay puntajes" en vez de una tabla vacía. _(verificado por revisión de código, no en vivo — la tabla ya tiene datos reales de uso genuino)_
+- [x] Con al menos una fila real, `Leaderboard` muestra hasta 10 filas ordenadas por puntaje descendente, con datos reales de Supabase.
+- [x] La ficha de detalle de cualquier otro juego sigue mostrando `seededScores` sin cambios.
 
 ### Salón de la Fama (`/salon`)
 
-- [ ] Pestaña Asteroides con 0 filas: no se renderiza `.podium` ni `.hall-table`; se muestra el mensaje "AÚN NO HAY PUNTAJES".
-- [ ] Pestaña Asteroides con 1 o 2 filas: no se renderiza `.podium`; sí se renderiza `.hall-table` con esas filas.
-- [ ] Pestaña Asteroides con 3 o más filas: se renderiza `.podium` (puestos 1/2/3 reales) y `.hall-table` (hasta 12 filas reales).
-- [ ] Si el usuario en sesión (`user.name`) tiene al menos una fila propia en Asteroides, aparece "▸ TU MEJOR MARCA EN ASTEROIDES" con su score más alto real.
-- [ ] Si el usuario en sesión no tiene ninguna fila propia en Asteroides, no aparece la fila "TU MEJOR MARCA" para esa pestaña.
-- [ ] Las otras 8 pestañas siguen mostrando `seededScores` con podio siempre visible, sin cambios de comportamiento.
+- [x] Pestaña Asteroides con 0 filas: no se renderiza `.podium` ni `.hall-table`; se muestra el mensaje "AÚN NO HAY PUNTAJES". _(verificado por revisión de código, no en vivo — la tabla ya tiene datos reales de uso genuino)_
+- [x] Pestaña Asteroides con 1 o 2 filas: no se renderiza `.podium`; sí se renderiza `.hall-table` con esas filas.
+- [x] Pestaña Asteroides con 3 o más filas: se renderiza `.podium` (puestos 1/2/3 reales) y `.hall-table` (hasta 12 filas reales).
+- [x] Si el usuario en sesión (`user.name`) tiene al menos una fila propia en Asteroides, aparece "▸ TU MEJOR MARCA EN ASTEROIDES" con su score más alto real.
+- [x] Si el usuario en sesión no tiene ninguna fila propia en Asteroides, no aparece la fila "TU MEJOR MARCA" para esa pestaña.
+- [x] Las otras 8 pestañas siguen mostrando `seededScores` con podio siempre visible, sin cambios de comportamiento.
 
 ### Compilación
 
-- [ ] `npx tsc --noEmit` pasa sin errores.
-- [ ] `npm run lint` pasa sin advertencias nuevas.
-- [ ] `npm run build` termina sin errores.
+- [x] `npx tsc --noEmit` pasa sin errores.
+- [x] `npm run lint` pasa sin advertencias nuevas.
+- [x] `npm run build` termina sin errores.
 
 ---
 
