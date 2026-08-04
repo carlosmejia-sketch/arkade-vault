@@ -14,20 +14,23 @@ export default function HallOfFame() {
   // Misma semilla que el template para que el ranking coincida.
   const mockRows = useMemo(() => seededScores(tab.length * 23 + 7, 12), [tab]);
 
-  const [realRows, setRealRows] = useState<RealScoreRow[] | null>(null);
+  const [asteroidesData, setAsteroidesData] = useState<{
+    tab: string;
+    rows: RealScoreRow[];
+  } | null>(null);
 
   useEffect(() => {
     if (!isAsteroides) return;
-    setRealRows(null);
     let cancelled = false;
     fetchTopScores(createClient(), "asteroides", 12).then((data) => {
-      if (!cancelled) setRealRows(data);
+      if (!cancelled) setAsteroidesData({ tab, rows: data });
     });
     return () => {
       cancelled = true;
     };
-  }, [isAsteroides]);
+  }, [isAsteroides, tab]);
 
+  const realRows = asteroidesData?.tab === tab ? asteroidesData.rows : null;
   const rows = isAsteroides ? (realRows ?? []) : mockRows;
   const game = getGame(tab);
   const youRank = Math.floor(8 + (tab.length % 4));
