@@ -8,6 +8,8 @@ import {
   type AsteroidesEngine,
 } from "@/lib/games/asteroides/engine";
 import { useSession } from "@/lib/session";
+import { insertScore } from "@/lib/scores";
+import { createClient } from "@/lib/supabase/client";
 
 export default function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
@@ -195,6 +197,18 @@ export default function GamePlayer({ game }: { game: Game }) {
                   className="btn yellow"
                   onClick={() => {
                     saveScore({ game: game.id, score, name });
+                    if (isAsteroides) {
+                      insertScore(createClient(), {
+                        gameId: game.id,
+                        playerName: name,
+                        score,
+                      }).catch((err) => {
+                        console.error(
+                          "Error al guardar puntaje en Supabase:",
+                          err,
+                        );
+                      });
+                    }
                     setSaved(true);
                   }}
                 >
