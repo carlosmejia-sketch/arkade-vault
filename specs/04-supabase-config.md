@@ -1,6 +1,6 @@
 # SPEC 04 — Configuración base de Supabase
 
-> **Estado:** Aprobado
+> **Estado:** Implementado.
 > **Depende de:** ninguna spec previa (independiente)
 > **Fecha:** 2026-08-03
 > **Objetivo:** Configurar la conexión base a Supabase (proyecto `rwiimwxdcieqbwcnfavg`) con clientes browser y server vía `@supabase/ssr`, dejando el terreno listo para futuras specs de auth, Realtime y Edge Functions, sin implementar todavía ninguna de esas features.
