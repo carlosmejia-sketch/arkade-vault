@@ -1,16 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
+import {
+  createAsteroidesEngine,
+  type AsteroidesEngine,
+} from "@/lib/games/asteroides/engine";
 import { useSession } from "@/lib/session";
 
 export default function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
   const { user, saveScore } = useSession();
+  const isAsteroides = game.id === "asteroides";
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  // Nivel real (asteroides, vía callback del motor) o derivado del puntaje (mock).
+  const [engineLevel, setEngineLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   // null = el jugador no ha escrito sus iniciales, así que manda la sesión.
@@ -21,22 +28,61 @@ export default function GamePlayer({ game }: { game: Game }) {
 
   const name = typedName ?? user?.name ?? "INVITADO";
 
-  // El nivel se deriva del puntaje: nada de estado paralelo que sincronizar.
-  const level = 1 + Math.floor(score / 2500);
+  const level = isAsteroides ? engineLevel : 1 + Math.floor(score / 2500);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const engineRef = useRef<AsteroidesEngine | null>(null);
 
   // Puntuación simulada: la partida no es jugable, solo avanza el marcador.
   useEffect(() => {
-    if (over || paused) return;
+    if (isAsteroides || over || paused) return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [over, paused]);
+  }, [isAsteroides, over, paused]);
+
+  // Motor real: se monta una vez sobre el canvas y refleja su estado en el HUD.
+  useEffect(() => {
+    if (!isAsteroides || !canvasRef.current) return;
+    const engine = createAsteroidesEngine(canvasRef.current, {
+      onScore: setScore,
+      onLives: setLives,
+      onLevel: setEngineLevel,
+      onGameOver: () => setOver(true),
+    });
+    engineRef.current = engine;
+    engine.start();
+    return () => {
+      engine.destroy();
+      engineRef.current = null;
+    };
+  }, [isAsteroides]);
+
+  const togglePause = () => {
+    setPaused((p) => {
+      const next = !p;
+      if (isAsteroides) {
+        if (next) engineRef.current?.pause();
+        else engineRef.current?.resume();
+      }
+      return next;
+    });
+  };
+
+  const finish = () => {
+    if (isAsteroides) engineRef.current?.pause();
+    setOver(true);
+  };
 
   const restart = () => {
-    setScore(0);
-    setLives(3);
+    if (isAsteroides) {
+      engineRef.current?.restart();
+    } else {
+      setScore(0);
+      setLives(3);
+    }
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -66,10 +112,10 @@ export default function GamePlayer({ game }: { game: Game }) {
           </div>
         </div>
         <div className="hud-actions">
-          <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
+          <button className="btn yellow" onClick={togglePause}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
-          <button className="btn magenta" onClick={() => setOver(true)}>
+          <button className="btn magenta" onClick={finish}>
             FIN
           </button>
           <button
@@ -83,13 +129,22 @@ export default function GamePlayer({ game }: { game: Game }) {
 
       <div className="crt">
         <div className="crt-screen">
-          <div className="game-arena">
-            <div className="grid-floor"></div>
-            <div className="enemy e1"></div>
-            <div className="enemy e2"></div>
-            <div className="enemy e3"></div>
-            <div className="player-ship"></div>
-          </div>
+          {isAsteroides ? (
+            <canvas
+              ref={canvasRef}
+              width={800}
+              height={600}
+              className="asteroides-canvas"
+            />
+          ) : (
+            <div className="game-arena">
+              <div className="grid-floor"></div>
+              <div className="enemy e1"></div>
+              <div className="enemy e2"></div>
+              <div className="enemy e3"></div>
+              <div className="player-ship"></div>
+            </div>
+          )}
           {paused && (
             <div
               className="crt-content"
@@ -153,7 +208,10 @@ export default function GamePlayer({ game }: { game: Game }) {
               <button className="btn" onClick={restart}>
                 JUGAR DE NUEVO
               </button>
-              <button className="btn magenta" onClick={() => router.push("/biblioteca")}>
+              <button
+                className="btn magenta"
+                onClick={() => router.push("/biblioteca")}
+              >
                 VOLVER AL VAULT
               </button>
             </div>

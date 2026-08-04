@@ -91,6 +91,17 @@ export const GAMES: readonly Game[] = [
     plays: "15.6K",
   },
   {
+    id: "asteroides",
+    title: "ASTEROIDES",
+    short: "Pulveriza rocas y sobrevive en el vacío.",
+    long: "Pilota una nave triangular a la deriva en el vacío. Dispara y rota para partir asteroides en fragmentos cada vez más pequeños. Recoge el power-up 3x para triplicar tu disparo por unos segundos.",
+    cat: "SHOOTER",
+    cover: "cover-asteroides",
+    color: "cyan",
+    best: 63500,
+    plays: "2.1K",
+  },
+  {
     id: "ranaria",
     title: "RANARIA",
     short: "Cruza la autopista de pixeles.",
