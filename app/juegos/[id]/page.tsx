@@ -2,7 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Leaderboard from "@/components/leaderboard";
 import { GAMES, getGame } from "@/lib/games";
-import { seededScores } from "@/lib/scores";
+import {
+  fetchTopScores,
+  seededScores,
+  type RealScoreRow,
+  type ScoreRow,
+} from "@/lib/scores";
+import { createClient } from "@/lib/supabase/server";
 
 export function generateStaticParams() {
   return GAMES.map((game) => ({ id: game.id }));
@@ -17,8 +23,16 @@ export default async function GameDetailPage({
   const game = getGame(id);
   if (!game) notFound();
 
-  // Misma semilla que el template para que el ranking coincida.
-  const scores = seededScores(id.length * 17 + 3, 10);
+  const isAsteroides = id === "asteroides";
+
+  let scores: ScoreRow[] | RealScoreRow[];
+  if (isAsteroides) {
+    const supabase = await createClient();
+    scores = await fetchTopScores(supabase, "asteroides", 10);
+  } else {
+    // Misma semilla que el template para que el ranking coincida.
+    scores = seededScores(id.length * 17 + 3, 10);
+  }
 
   return (
     <main className="av-main">
@@ -78,7 +92,14 @@ export default async function GameDetailPage({
         </div>
 
         <aside>
-          <Leaderboard scores={scores} />
+          {isAsteroides && scores.length === 0 ? (
+            <div className="leaderboard">
+              <h3>MEJORES PUNTUACIONES</h3>
+              <p style={{ color: "var(--ink-dim)" }}>AÚN NO HAY PUNTAJES</p>
+            </div>
+          ) : (
+            <Leaderboard scores={scores} />
+          )}
         </aside>
       </div>
     </main>
