@@ -1,6 +1,6 @@
 # SPEC 05 — Juego Asteroides (rocas real)
 
-> **Estado:** Aprobado.
+> **Estado:** Implementado.
 > **Depende de:** ninguna spec previa (usa convenciones ya existentes de `lib/games.ts`, `lib/scores.ts`, `lib/session.tsx`, `components/game-player.tsx`).
 > **Fecha:** 2026-08-03
 > **Objetivo:** Portar el motor de juego de `references/started-games/02-asteroids/game.js` a TypeScript como una nueva entrada `"asteroides"` en el catálogo, reemplazando la simulación de puntaje mock por un canvas jugable real (teclado), sincronizado con el HUD/pausa/game-over/guardado de puntaje ya existentes en `GamePlayer`, sin tocar el comportamiento de los demás 8 juegos.
