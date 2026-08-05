@@ -129,6 +129,18 @@ export const GAMES: readonly Game[] = [
     plays: "0.4K",
   },
   {
+    id: "snake",
+    title: "SNAKE",
+    short: "Devora frutas y crece sin perder el rumbo.",
+    long: "Guía una serpiente de píxeles por una grilla sin bordes: al llegar a un extremo reaparece del lado opuesto. Cada fruta que devora —de un surtido real de más de 20 variedades— la hace más larga y más veloz. Un giro en falso contra su propia cola termina la partida.",
+    cat: "ARCADE",
+    cover: "cover-snake-real",
+    color: "green",
+    engine: "snake",
+    best: 4200,
+    plays: "0.2K",
+  },
+  {
     id: "ranaria",
     title: "RANARIA",
     short: "Cruza la autopista de pixeles.",
