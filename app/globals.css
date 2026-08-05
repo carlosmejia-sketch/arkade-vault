@@ -914,6 +914,34 @@ a {
   text-shadow: 0 0 6px #fff;
 }
 
+.cover-snake-real {
+  background: linear-gradient(135deg, #003a2a, #0a0a18);
+}
+.cover-snake-real::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, var(--green) 0 40px, transparent 40px) 15% 45% /
+      200px 12px no-repeat,
+    linear-gradient(90deg, var(--green) 0 12px, transparent 12px)
+      calc(15% + 40px) calc(45% - 12px) / 12px 12px no-repeat,
+    linear-gradient(90deg, var(--green) 0 12px, transparent 12px)
+      calc(15% + 28px) calc(45% - 12px) / 12px 12px no-repeat;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.6));
+}
+.cover-snake-real::before {
+  content: "";
+  position: absolute;
+  left: 68%;
+  top: 42%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 6px var(--yellow);
+}
+
 .cover-rana {
   background: linear-gradient(180deg, #001f2a, #0a0a18);
 }
