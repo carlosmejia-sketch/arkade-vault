@@ -117,6 +117,18 @@ export const GAMES: readonly Game[] = [
     plays: "1.3K",
   },
   {
+    id: "arkanoid",
+    title: "ARKANOID",
+    short: "Rebota la pelota y despeja el tablero nivel a nivel.",
+    long: "Controla una paleta con mouse o teclado para rebotar la pelota y destruir hileras de bloques cromáticos. Cinco niveles con patrones distintos y velocidad creciente. Cada bloque roto suena y estalla en pixeles.",
+    cat: "ARCADE",
+    cover: "cover-arkanoid",
+    color: "magenta",
+    engine: "arkanoid",
+    best: 15600,
+    plays: "0.4K",
+  },
+  {
     id: "ranaria",
     title: "RANARIA",
     short: "Cruza la autopista de pixeles.",
