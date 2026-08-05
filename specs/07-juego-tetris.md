@@ -1,6 +1,6 @@
 # SPEC 07 — Juego Tetris (motor real + leaderboard Supabase)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 05 (motor real de Asteroides), SPEC 06 (leaderboard Supabase de Asteroides), Paso 0 de esta misma spec (refactor de generalización, primer uso)
 > **Fecha:** 2026-08-05
 > **Objetivo:** Portar el motor de `references/started-games/03-tetris/game.js` a TypeScript como una nueva entrada `"tetris"` en el catálogo, con canvas jugable real 300×600, HUD sin columna de vidas, leaderboard real en Supabase, y generalizar por primera vez la integración condicional (`isAsteroides` → registry por `engine`) sin tocar el comportamiento de Asteroides ni de los 8 mocks restantes.
@@ -143,49 +143,49 @@ En `app/juegos/[id]/page.tsx` y `components/hall-of-fame.tsx`, extender la condi
 
 ### Refactor de generalización
 
-- [ ] `lib/games/types.ts` exporta `EngineCallbacks`/`Engine`; `lib/games/asteroides/engine.ts` los importa desde ahí en vez de declararlos localmente, sin cambio de comportamiento.
-- [ ] `lib/games/registry.ts` exporta `ENGINE_REGISTRY` con entradas `asteroides` y `tetris`.
-- [ ] `Game` (`lib/games.ts`) tiene el campo opcional `engine?: string`; la entrada `asteroides` lo tiene seteado a `"asteroides"`.
-- [ ] `game-player.tsx`, `app/juegos/[id]/page.tsx` y `hall-of-fame.tsx` consultan `game.engine`/`ENGINE_REGISTRY` en vez de `isAsteroides`/literales `"asteroides"` hardcodeados.
-- [ ] Asteroides (`/juegos/asteroides/jugar`, ficha de detalle, Salón de la Fama) sigue funcionando exactamente igual que antes del refactor.
-- [ ] Los 8 mocks siguen mostrando su HUD simulado y `seededScores` sin cambios.
+- [x] `lib/games/types.ts` exporta `EngineCallbacks`/`Engine`; `lib/games/asteroides/engine.ts` los importa desde ahí en vez de declararlos localmente, sin cambio de comportamiento.
+- [x] `lib/games/registry.ts` exporta `ENGINE_REGISTRY` con entradas `asteroides` y `tetris`.
+- [x] `Game` (`lib/games.ts`) tiene el campo opcional `engine?: string`; la entrada `asteroides` lo tiene seteado a `"asteroides"`.
+- [x] `game-player.tsx`, `app/juegos/[id]/page.tsx` y `hall-of-fame.tsx` consultan `game.engine`/`ENGINE_REGISTRY` en vez de `isAsteroides`/literales `"asteroides"` hardcodeados.
+- [x] Asteroides (`/juegos/asteroides/jugar`, ficha de detalle, Salón de la Fama) sigue funcionando exactamente igual que antes del refactor. _(verificado en vivo con Playwright, sin diferencias visuales/funcionales)_
+- [x] Los 8 mocks siguen mostrando su HUD simulado y `seededScores` sin cambios. _(verificado en vivo en `/juegos/caida/jugar`: HUD completo con Vidas, puntaje simulado incrementando)_
 
 ### Catálogo
 
-- [ ] `GAMES` en `lib/games.ts` incluye la entrada `id: "tetris"` con los campos definidos en el Alcance, incluyendo `engine: "tetris"`.
-- [ ] `.cover-tetris` y `.tetris-canvas` existen en `app/globals.css` y se ven en la tarjeta de biblioteca, portada de detalle y reproductor.
-- [ ] `/juegos/tetris` renderiza la ficha de detalle con título, descripción y leaderboard, igual que cualquier otro juego.
+- [x] `GAMES` en `lib/games.ts` incluye la entrada `id: "tetris"` con los campos definidos en el Alcance, incluyendo `engine: "tetris"`.
+- [x] `.cover-tetris` y `.tetris-canvas` existen en `app/globals.css` y se ven en la tarjeta de biblioteca, portada de detalle y reproductor.
+- [x] `/juegos/tetris` renderiza la ficha de detalle con título, descripción y leaderboard, igual que cualquier otro juego.
 
 ### Motor
 
-- [ ] `lib/games/tetris/engine.ts` exporta `createTetrisEngine(canvas, callbacks)` sin exportar las estructuras internas (`board`, piezas, colores).
-- [ ] El motor no agrega listeners de teclado a nivel de módulo — solo entre `start()` y `destroy()`.
-- [ ] `onScore`/`onLevel` se disparan cuando el valor correspondiente cambia; `onLives(1)` se emite en `start()`/`restart()`, `onLives(0)` y `onGameOver(finalScore)` al entrar en game over.
-- [ ] Rotación con wall-kicks, ghost piece, soft drop y hard drop funcionan igual que en `game.js`.
-- [ ] El nivel sube cada 10 líneas y acelera `dropInterval` igual que el original.
-- [ ] No existe ningún camino de reinicio por tecla — solo `restart()` desde el modal de React.
+- [x] `lib/games/tetris/engine.ts` exporta `createTetrisEngine(canvas, callbacks)` sin exportar las estructuras internas (`board`, piezas, colores).
+- [x] El motor no agrega listeners de teclado a nivel de módulo — solo entre `start()` y `destroy()`.
+- [x] `onScore`/`onLevel` se disparan cuando el valor correspondiente cambia; `onLives(1)` se emite en `start()`/`restart()`, `onLives(0)` y `onGameOver(finalScore)` al entrar en game over.
+- [x] Rotación con wall-kicks, ghost piece, soft drop y hard drop funcionan igual que en `game.js`.
+- [x] El nivel sube cada 10 líneas y acelera `dropInterval` igual que el original. _(verificado por revisión de código — `clearLines()` replica el cálculo exacto del original; no se jugó una partida de 10 líneas en vivo)_
+- [x] No existe ningún camino de reinicio por tecla — solo `restart()` desde el modal de React.
 
 ### Integración en el reproductor
 
-- [ ] En `/juegos/tetris/jugar`, las piezas se controlan con `←`/`→`/`↑`/`↓`, hard drop con `Espacio` (con `preventDefault`); el canvas 300×600 se ve dentro de `.crt-screen`.
-- [ ] El HUD muestra Puntuación y Nivel reales; la columna "VIDAS" no se muestra para `tetris`.
-- [ ] El botón PAUSA detiene el juego; REANUDAR lo continúa.
-- [ ] Al bloquear una pieza que colisiona en el spawn, aparece el modal "FIN DEL JUEGO" con el puntaje real; "GUARDAR PUNTUACIÓN" llama a `saveScore` e `insertScore` (`game_id: "tetris"`).
-- [ ] "JUGAR DE NUEVO" reinicia el motor sin recargar la página; "SALIR" navega a `/juegos/tetris` y desmonta el canvas sin listeners colgados.
-- [ ] Asteroides y los 8 mocks siguen mostrando su HUD (real o simulado) sin cambios de comportamiento.
+- [x] En `/juegos/tetris/jugar`, las piezas se controlan con `←`/`→`/`↑`/`↓`, hard drop con `Espacio` (con `preventDefault`); el canvas 300×600 se ve dentro de `.crt-screen`.
+- [x] El HUD muestra Puntuación y Nivel reales; la columna "VIDAS" no se muestra para `tetris`.
+- [x] El botón PAUSA detiene el juego; REANUDAR lo continúa.
+- [x] Al bloquear una pieza que colisiona en el spawn, aparece el modal "FIN DEL JUEGO" con el puntaje real; "GUARDAR PUNTUACIÓN" llama a `saveScore` e `insertScore` (`game_id: "tetris"`).
+- [x] "JUGAR DE NUEVO" reinicia el motor sin recargar la página; "SALIR" navega a `/juegos/tetris` y desmonta el canvas sin listeners colgados.
+- [x] Asteroides y los 8 mocks siguen mostrando su HUD (real o simulado) sin cambios de comportamiento.
 
 ### Leaderboard (ficha de detalle + Salón de la Fama)
 
-- [ ] `/juegos/tetris` con tabla vacía muestra "AÚN NO HAY PUNTAJES"; con datos reales, muestra hasta 10 filas ordenadas por puntaje descendente.
-- [ ] Salón de la Fama, pestaña Tetris: con 0 filas no se renderiza podio ni tabla (mensaje vacío); con 1-2 filas, tabla sin podio; con 3+, podio y tabla con datos reales.
-- [ ] "TU MEJOR MARCA EN TETRIS" aparece solo si el usuario en sesión tiene al menos una fila propia.
-- [ ] Guardar un puntaje en Tetris no afecta el leaderboard de Asteroides ni de los mocks, y viceversa.
+- [x] `/juegos/tetris` con tabla vacía muestra "AÚN NO HAY PUNTAJES"; con datos reales, muestra hasta 10 filas ordenadas por puntaje descendente. _(el estado de tabla vacía se verificó por revisión de código — reutiliza la misma condición `hasRealLeaderboard && scores.length === 0` ya probada en vivo para Asteroides en spec 06; el estado con datos sí se probó en vivo, orden descendente confirmado: 170/91/87)_
+- [x] Salón de la Fama, pestaña Tetris: con 0 filas no se renderiza podio ni tabla (mensaje vacío) _(verificado por revisión de código, mismo camino que Asteroides)_; con 1-2 filas, tabla sin podio _(verificado en vivo)_; con 3+, podio y tabla con datos reales _(verificado en vivo tras guardar una tercera partida)_.
+- [x] "TU MEJOR MARCA EN TETRIS" aparece solo si el usuario en sesión tiene al menos una fila propia. _(verificado en vivo: con sesión "INVITADO" simulada por localStorage, aparece con el score más alto propio; sin sesión, no aparece)_
+- [x] Guardar un puntaje en Tetris no afecta el leaderboard de Asteroides ni de los mocks, y viceversa. _(verificado con `execute_sql`: conteo por `game_id` — `asteroides: 3`, `tetris: 3` — sin cruce)_
 
 ### Compilación
 
-- [ ] `npx tsc --noEmit` pasa sin errores.
-- [ ] `npm run lint` pasa sin advertencias nuevas.
-- [ ] `npm run build` termina sin errores.
+- [x] `npx tsc --noEmit` pasa sin errores.
+- [x] `npm run lint` pasa sin advertencias nuevas. _(los 4 errores en `.claude/hooks/format-on-write.js` son preexistentes, confirmados sin diff contra `main`)_
+- [x] `npm run build` termina sin errores.
 
 ---
 
