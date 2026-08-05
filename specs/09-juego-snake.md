@@ -1,6 +1,6 @@
 # SPEC 09 — Juego Snake (motor real + leaderboard Supabase)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 05 (motor real de Asteroides), SPEC 06 (leaderboard Supabase de Asteroides)
 > **Fecha:** 2026-08-05
 > **Objetivo:** Crear desde cero un motor jugable real de Snake (grilla con wrap en bordes, frutas variadas del atlas de sprites provisto) como nueva entrada `"snake"` en el catálogo, con leaderboard real en Supabase, sin tocar el comportamiento del mock existente `"serpentina"` ni de los demás juegos.
@@ -151,48 +151,48 @@ con `game_id = 'snake'`, confirmar que `/juegos/serpentina/jugar` y los demás j
 
 ### Catálogo
 
-- [ ] `GAMES` en `lib/games.ts` incluye la entrada `id: "snake"` con los campos definidos en el Alcance, incluyendo `engine: "snake"`.
-- [ ] `.cover-snake-real` existe en `app/globals.css` y se ve en la tarjeta de biblioteca y en la portada de detalle.
-- [ ] La entrada mock `id: "serpentina"` sigue existiendo sin cambios.
+- [x] `GAMES` en `lib/games.ts` incluye la entrada `id: "snake"` con los campos definidos en el Alcance, incluyendo `engine: "snake"`.
+- [x] `.cover-snake-real` existe en `app/globals.css` y se ve en la tarjeta de biblioteca y en la portada de detalle.
+- [x] La entrada mock `id: "serpentina"` sigue existiendo sin cambios.
 
 ### Assets
 
-- [ ] `public/snake/fruits.png` existe y se sirve correctamente.
-- [ ] `lib/games/snake/sprites.ts` exporta las coordenadas de las frutas usadas por el motor.
+- [x] `public/snake/fruits.png` existe y se sirve correctamente.
+- [x] `lib/games/snake/sprites.ts` exporta las coordenadas de las frutas usadas por el motor.
 
 ### Motor
 
-- [ ] `lib/games/snake/engine.ts` exporta `createSnakeEngine(canvas, callbacks)` sin exportar el estado interno.
-- [ ] El motor no agrega listeners de teclado a nivel de módulo — solo entre `start()` y `destroy()`.
-- [ ] La serpiente reaparece del lado opuesto al tocar cualquiera de los 4 bordes (sin morir).
-- [ ] Comer una fruta hace crecer la serpiente, suma puntaje y hace aparecer una nueva fruta con sprite aleatorio del atlas.
-- [ ] Colisionar contra la propia cola es la única causa de game over.
-- [ ] `onScore`/`onLevel` se disparan cuando el valor correspondiente cambia; `onLives` emite `1` en juego y `0` justo antes de `onGameOver`.
-- [ ] Presionar cualquier tecla en estado game over **no** reinicia la partida.
+- [x] `lib/games/snake/engine.ts` exporta `createSnakeEngine(canvas, callbacks)` sin exportar el estado interno.
+- [x] El motor no agrega listeners de teclado a nivel de módulo — solo entre `start()` y `destroy()`.
+- [x] La serpiente reaparece del lado opuesto al tocar cualquiera de los 4 bordes (sin morir).
+- [x] Comer una fruta hace crecer la serpiente, suma puntaje y hace aparecer una nueva fruta con sprite aleatorio del atlas.
+- [x] Colisionar contra la propia cola es la única causa de game over.
+- [x] `onScore`/`onLevel` se disparan cuando el valor correspondiente cambia; `onLives` emite `1` en juego y `0` justo antes de `onGameOver`.
+- [x] Presionar cualquier tecla en estado game over **no** reinicia la partida.
 
 ### Integración en el reproductor
 
-- [ ] En `/juegos/snake/jugar`, la serpiente se controla con flechas/WASD; el canvas 800×600 se ve dentro de `.crt-screen`.
-- [ ] El HUD (Jugador/Puntuación/Vidas/Nivel) refleja el estado real del motor.
-- [ ] El botón PAUSA detiene el juego; REANUDAR lo continúa.
-- [ ] Al morir, aparece el modal "FIN DEL JUEGO" con el puntaje real; "GUARDAR PUNTUACIÓN" llama a `saveScore` e `insertScore` con `gameId: "snake"`.
-- [ ] "JUGAR DE NUEVO" reinicia el motor sin recargar la página.
-- [ ] "SALIR" navega a `/juegos/snake` y desmonta el canvas sin dejar listeners colgados.
-- [ ] Cualquier otro juego (ej. `/juegos/serpentina/jugar`, `/juegos/caida/jugar`) sigue mostrando su comportamiento actual sin cambios.
+- [x] En `/juegos/snake/jugar`, la serpiente se controla con flechas/WASD; el canvas 800×600 se ve dentro de `.crt-screen`.
+- [x] El HUD (Jugador/Puntuación/Vidas/Nivel) refleja el estado real del motor.
+- [x] El botón PAUSA detiene el juego; REANUDAR lo continúa.
+- [x] Al morir, aparece el modal "FIN DEL JUEGO" con el puntaje real; "GUARDAR PUNTUACIÓN" llama a `saveScore` e `insertScore` con `gameId: "snake"`.
+- [x] "JUGAR DE NUEVO" reinicia el motor sin recargar la página.
+- [x] "SALIR" navega a `/juegos/snake` y desmonta el canvas sin dejar listeners colgados.
+- [x] Cualquier otro juego (ej. `/juegos/serpentina/jugar`, `/juegos/caida/jugar`) sigue mostrando su comportamiento actual sin cambios.
 
 ### Leaderboard (ficha de detalle + Salón de la Fama)
 
-- [ ] Con la tabla vacía para `snake`, se muestra "AÚN NO HAY PUNTAJES" en vez de tabla/podio.
-- [ ] Con 1-2 filas reales, se muestra la tabla sin podio.
-- [ ] Con 3+ filas reales, se muestra podio y tabla con datos reales de Supabase.
-- [ ] "TU MEJOR MARCA EN SNAKE" aparece en el Salón de la Fama si el usuario en sesión tiene al menos una fila propia.
-- [ ] Las demás pestañas/fichas de detalle no cambian de comportamiento.
+- [x] Con la tabla vacía para `snake`, se muestra "AÚN NO HAY PUNTAJES" en vez de tabla/podio.
+- [x] Con 1-2 filas reales, se muestra la tabla sin podio.
+- [x] Con 3+ filas reales, se muestra podio y tabla con datos reales de Supabase.
+- [x] "TU MEJOR MARCA EN SNAKE" aparece en el Salón de la Fama si el usuario en sesión tiene al menos una fila propia.
+- [x] Las demás pestañas/fichas de detalle no cambian de comportamiento.
 
 ### Compilación
 
-- [ ] `npx tsc --noEmit` pasa sin errores.
-- [ ] `npm run lint` pasa sin advertencias nuevas.
-- [ ] `npm run build` termina sin errores.
+- [x] `npx tsc --noEmit` pasa sin errores.
+- [x] `npm run lint` pasa sin advertencias nuevas.
+- [x] `npm run build` termina sin errores.
 
 ---
 
