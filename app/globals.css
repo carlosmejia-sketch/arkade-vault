@@ -867,6 +867,27 @@ a {
   text-shadow: 0 0 8px var(--cyan);
 }
 
+.cover-tetris {
+  background: radial-gradient(circle at 50% 100%, #2a2200, #0a0a18);
+}
+.cover-tetris::after {
+  content: "";
+  position: absolute;
+  inset: 15% 25% 0 25%;
+  background:
+    linear-gradient(var(--cyan), var(--cyan)) 0 20%/33% 20% no-repeat,
+    linear-gradient(var(--yellow), var(--yellow)) 33% 20%/33% 20% no-repeat,
+    linear-gradient(var(--yellow), var(--yellow)) 66% 20%/33% 20% no-repeat,
+    linear-gradient(var(--magenta), var(--magenta)) 0 40%/33% 20% no-repeat,
+    linear-gradient(var(--green), var(--green)) 33% 40%/33% 20% no-repeat,
+    linear-gradient(var(--green), var(--green)) 0 60%/33% 20% no-repeat,
+    linear-gradient(var(--green), var(--green)) 33% 60%/33% 20% no-repeat,
+    linear-gradient(var(--green), var(--green)) 66% 60%/33% 20% no-repeat,
+    linear-gradient(var(--magenta), var(--magenta)) 66% 80%/33% 20% no-repeat;
+  filter: drop-shadow(0 0 8px rgba(245, 255, 0, 0.4));
+  image-rendering: pixelated;
+}
+
 .cover-rana {
   background: linear-gradient(180deg, #001f2a, #0a0a18);
 }
@@ -1182,6 +1203,18 @@ a {
   inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
+}
+
+/* motor real: canvas fijo 300x600 (vertical) — se ajusta al alto del CRT
+   (aspect-ratio 4/3) preservando su proporción, sin deformarlo */
+.tetris-canvas {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  width: auto;
+  transform: translateX(-50%);
   display: block;
 }
 

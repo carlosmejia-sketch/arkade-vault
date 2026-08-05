@@ -11,23 +11,13 @@
 //   reinicio posible es restart(), llamado desde el modal de React.
 // - pause()/resume() congelan/reanudan el loop (dt no avanza en pausa).
 
+import type { Engine, EngineCallbacks } from "../types";
+
 const W = 800;
 const H = 600;
 
-export type EngineCallbacks = {
-  onScore: (score: number) => void;
-  onLives: (lives: number) => void;
-  onLevel: (level: number) => void;
-  onGameOver: (finalScore: number) => void;
-};
-
-export type AsteroidesEngine = {
-  start: () => void;
-  pause: () => void;
-  resume: () => void;
-  restart: () => void;
-  destroy: () => void;
-};
+export type { EngineCallbacks };
+export type AsteroidesEngine = Engine;
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const wrap = (v: number, max: number) => ((v % max) + max) % max;

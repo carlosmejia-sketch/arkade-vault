@@ -17,6 +17,8 @@ export type Game = {
   cover: string;
   /** Tinte del botón JUGAR. */
   color: GameColor;
+  /** Key en lib/games/registry.ts si tiene motor real + leaderboard real en Supabase. */
+  engine?: string;
   /** Mejor puntuación global. */
   best: number;
   /** Ya formateado, igual que el template: "12.4K". */
@@ -98,8 +100,21 @@ export const GAMES: readonly Game[] = [
     cat: "SHOOTER",
     cover: "cover-asteroides",
     color: "cyan",
+    engine: "asteroides",
     best: 63500,
     plays: "2.1K",
+  },
+  {
+    id: "tetris",
+    title: "TETRIS",
+    short: "Encaja piezas y limpia líneas antes de que se acumulen.",
+    long: "Piezas de siete formas distintas caen desde arriba. Rótalas, encástralas y limpia líneas completas antes de que el tablero se desborde. La velocidad aumenta cada 10 líneas sin piedad.",
+    cat: "PUZZLE",
+    cover: "cover-tetris",
+    color: "yellow",
+    engine: "tetris",
+    best: 92800,
+    plays: "1.3K",
   },
   {
     id: "ranaria",
