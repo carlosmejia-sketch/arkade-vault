@@ -14,6 +14,9 @@ export default function GamePlayer({ game }: { game: Game }) {
   const { user, saveScore } = useSession();
   const engineFactory = game.engine ? ENGINE_REGISTRY[game.engine] : undefined;
   const hasEngine = Boolean(engineFactory);
+  // Tetris no tiene vidas múltiples (game over es un solo golpe) y su canvas
+  // es vertical (300×600) en vez del 800×600 de Asteroides.
+  const isTetris = game.id === "tetris";
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -103,10 +106,12 @@ export default function GamePlayer({ game }: { game: Game }) {
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString("es-ES")}</div>
           </div>
-          <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
-          </div>
+          {!isTetris && (
+            <div className="hud-stat lives">
+              <div className="l">Vidas</div>
+              <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            </div>
+          )}
           <div className="hud-stat level">
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
@@ -133,9 +138,9 @@ export default function GamePlayer({ game }: { game: Game }) {
           {hasEngine ? (
             <canvas
               ref={canvasRef}
-              width={800}
+              width={isTetris ? 300 : 800}
               height={600}
-              className="asteroides-canvas"
+              className={isTetris ? "tetris-canvas" : "asteroides-canvas"}
             />
           ) : (
             <div className="game-arena">
