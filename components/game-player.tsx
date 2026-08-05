@@ -17,6 +17,9 @@ export default function GamePlayer({ game }: { game: Game }) {
   // Tetris no tiene vidas múltiples (game over es un solo golpe) y su canvas
   // es vertical (300×600) en vez del 800×600 de Asteroides.
   const isTetris = game.id === "tetris";
+  // Arkanoid dibuja su propio overlay de pausa (con selector de nivel) sobre
+  // el canvas; el overlay genérico de React lo tapa y bloquea sus clics.
+  const isArkanoid = game.id === "arkanoid";
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -151,7 +154,7 @@ export default function GamePlayer({ game }: { game: Game }) {
               <div className="player-ship"></div>
             </div>
           )}
-          {paused && (
+          {paused && !isArkanoid && (
             <div
               className="crt-content"
               style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
