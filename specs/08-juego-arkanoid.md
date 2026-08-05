@@ -1,6 +1,6 @@
 # SPEC 08 — Juego Arkanoid (motor real + leaderboard Supabase)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 05 (motor real de Asteroides), SPEC 06 (leaderboard Supabase de Asteroides), SPEC 07 (refactor de generalización — registry `ENGINE_REGISTRY`, ya existente)
 > **Fecha:** 2026-08-05
 > **Objetivo:** Portar el motor de `references/started-games/04-arkanoid/game.js` a TypeScript como una nueva entrada `"arkanoid"` en el catálogo, con canvas jugable real 800×600 (sprites + sonido incluidos), mouse y teclado, leaderboard real en Supabase, integrado vía el registry ya generalizado, sin tocar el comportamiento de Asteroides, Tetris ni de los 7 mocks restantes.
