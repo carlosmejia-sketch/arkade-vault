@@ -3,10 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
-import {
-  createAsteroidesEngine,
-  type AsteroidesEngine,
-} from "@/lib/games/asteroides/engine";
+import { ENGINE_REGISTRY } from "@/lib/games/registry";
+import type { Engine } from "@/lib/games/types";
 import { useSession } from "@/lib/session";
 import { insertScore } from "@/lib/scores";
 import { createClient } from "@/lib/supabase/client";
@@ -14,7 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 export default function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
   const { user, saveScore } = useSession();
-  const isAsteroides = game.id === "asteroides";
+  const engineFactory = game.engine ? ENGINE_REGISTRY[game.engine] : undefined;
+  const hasEngine = Boolean(engineFactory);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -30,25 +29,25 @@ export default function GamePlayer({ game }: { game: Game }) {
 
   const name = typedName ?? user?.name ?? "INVITADO";
 
-  const level = isAsteroides ? engineLevel : 1 + Math.floor(score / 2500);
+  const level = hasEngine ? engineLevel : 1 + Math.floor(score / 2500);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const engineRef = useRef<AsteroidesEngine | null>(null);
+  const engineRef = useRef<Engine | null>(null);
 
   // Puntuación simulada: la partida no es jugable, solo avanza el marcador.
   useEffect(() => {
-    if (isAsteroides || over || paused) return;
+    if (hasEngine || over || paused) return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [isAsteroides, over, paused]);
+  }, [hasEngine, over, paused]);
 
   // Motor real: se monta una vez sobre el canvas y refleja su estado en el HUD.
   useEffect(() => {
-    if (!isAsteroides || !canvasRef.current) return;
-    const engine = createAsteroidesEngine(canvasRef.current, {
+    if (!engineFactory || !canvasRef.current) return;
+    const engine = engineFactory(canvasRef.current, {
       onScore: setScore,
       onLives: setLives,
       onLevel: setEngineLevel,
@@ -60,12 +59,12 @@ export default function GamePlayer({ game }: { game: Game }) {
       engine.destroy();
       engineRef.current = null;
     };
-  }, [isAsteroides]);
+  }, [engineFactory]);
 
   const togglePause = () => {
     setPaused((p) => {
       const next = !p;
-      if (isAsteroides) {
+      if (hasEngine) {
         if (next) engineRef.current?.pause();
         else engineRef.current?.resume();
       }
@@ -74,12 +73,12 @@ export default function GamePlayer({ game }: { game: Game }) {
   };
 
   const finish = () => {
-    if (isAsteroides) engineRef.current?.pause();
+    if (hasEngine) engineRef.current?.pause();
     setOver(true);
   };
 
   const restart = () => {
-    if (isAsteroides) {
+    if (hasEngine) {
       engineRef.current?.restart();
     } else {
       setScore(0);
@@ -131,7 +130,7 @@ export default function GamePlayer({ game }: { game: Game }) {
 
       <div className="crt">
         <div className="crt-screen">
-          {isAsteroides ? (
+          {hasEngine ? (
             <canvas
               ref={canvasRef}
               width={800}
@@ -197,7 +196,7 @@ export default function GamePlayer({ game }: { game: Game }) {
                   className="btn yellow"
                   onClick={() => {
                     saveScore({ game: game.id, score, name });
-                    if (isAsteroides) {
+                    if (hasEngine) {
                       insertScore(createClient(), {
                         gameId: game.id,
                         playerName: name,

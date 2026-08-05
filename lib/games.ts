@@ -17,6 +17,8 @@ export type Game = {
   cover: string;
   /** Tinte del botón JUGAR. */
   color: GameColor;
+  /** Key en lib/games/registry.ts si tiene motor real + leaderboard real en Supabase. */
+  engine?: string;
   /** Mejor puntuación global. */
   best: number;
   /** Ya formateado, igual que el template: "12.4K". */
@@ -98,6 +100,7 @@ export const GAMES: readonly Game[] = [
     cat: "SHOOTER",
     cover: "cover-asteroides",
     color: "cyan",
+    engine: "asteroides",
     best: 63500,
     plays: "2.1K",
   },

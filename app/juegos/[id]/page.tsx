@@ -23,12 +23,12 @@ export default async function GameDetailPage({
   const game = getGame(id);
   if (!game) notFound();
 
-  const isAsteroides = id === "asteroides";
+  const hasRealLeaderboard = Boolean(game.engine);
 
   let scores: ScoreRow[] | RealScoreRow[];
-  if (isAsteroides) {
+  if (hasRealLeaderboard) {
     const supabase = await createClient();
-    scores = await fetchTopScores(supabase, "asteroides", 10);
+    scores = await fetchTopScores(supabase, id, 10);
   } else {
     // Misma semilla que el template para que el ranking coincida.
     scores = seededScores(id.length * 17 + 3, 10);
@@ -92,7 +92,7 @@ export default async function GameDetailPage({
         </div>
 
         <aside>
-          {isAsteroides && scores.length === 0 ? (
+          {hasRealLeaderboard && scores.length === 0 ? (
             <div className="leaderboard">
               <h3>MEJORES PUNTUACIONES</h3>
               <p style={{ color: "var(--ink-dim)" }}>AÚN NO HAY PUNTAJES</p>
