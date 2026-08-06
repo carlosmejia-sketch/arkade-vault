@@ -2,12 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Leaderboard from "@/components/leaderboard";
 import { GAMES, getGame } from "@/lib/games";
-import {
-  fetchTopScores,
-  seededScores,
-  type RealScoreRow,
-  type ScoreRow,
-} from "@/lib/scores";
+import { fetchTopScores } from "@/lib/scores";
 import { createClient } from "@/lib/supabase/server";
 
 export function generateStaticParams() {
@@ -23,16 +18,8 @@ export default async function GameDetailPage({
   const game = getGame(id);
   if (!game) notFound();
 
-  const hasRealLeaderboard = Boolean(game.engine);
-
-  let scores: ScoreRow[] | RealScoreRow[];
-  if (hasRealLeaderboard) {
-    const supabase = await createClient();
-    scores = await fetchTopScores(supabase, id, 10);
-  } else {
-    // Misma semilla que el template para que el ranking coincida.
-    scores = seededScores(id.length * 17 + 3, 10);
-  }
+  const supabase = await createClient();
+  const scores = await fetchTopScores(supabase, id, 10);
 
   return (
     <main className="av-main">
@@ -92,7 +79,7 @@ export default async function GameDetailPage({
         </div>
 
         <aside>
-          {hasRealLeaderboard && scores.length === 0 ? (
+          {scores.length === 0 ? (
             <div className="leaderboard">
               <h3>MEJORES PUNTUACIONES</h3>
               <p style={{ color: "var(--ink-dim)" }}>AÚN NO HAY PUNTAJES</p>

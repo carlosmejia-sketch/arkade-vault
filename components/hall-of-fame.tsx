@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { GAMES, getGame } from "@/lib/games";
-import { fetchTopScores, seededScores, type RealScoreRow } from "@/lib/scores";
+import { fetchTopScores, type RealScoreRow } from "@/lib/scores";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/lib/session";
 
@@ -10,10 +10,6 @@ export default function HallOfFame() {
   const { user } = useSession();
   const [tab, setTab] = useState(GAMES[0].id);
   const game = getGame(tab);
-  const hasRealLeaderboard = Boolean(game?.engine);
-
-  // Misma semilla que el template para que el ranking coincida.
-  const mockRows = useMemo(() => seededScores(tab.length * 23 + 7, 12), [tab]);
 
   const [realData, setRealData] = useState<{
     tab: string;
@@ -21,7 +17,6 @@ export default function HallOfFame() {
   } | null>(null);
 
   useEffect(() => {
-    if (!hasRealLeaderboard) return;
     let cancelled = false;
     fetchTopScores(createClient(), tab, 12).then((data) => {
       if (!cancelled) setRealData({ tab, rows: data });
@@ -29,23 +24,19 @@ export default function HallOfFame() {
     return () => {
       cancelled = true;
     };
-  }, [hasRealLeaderboard, tab]);
+  }, [tab]);
 
   const realRows = realData?.tab === tab ? realData.rows : null;
-  const rows = hasRealLeaderboard ? (realRows ?? []) : mockRows;
-  const youRank = Math.floor(8 + (tab.length % 4));
-  const youScore = mockRows[5]?.score - 2400;
+  const rows = realRows ?? [];
 
-  const youReal = hasRealLeaderboard
-    ? rows
-        .filter((r) => r.name === user?.name)
-        .sort((a, b) => b.score - a.score)[0]
-    : undefined;
+  const youReal = rows
+    .filter((r) => r.name === user?.name)
+    .sort((a, b) => b.score - a.score)[0];
 
-  const loading = hasRealLeaderboard && realRows === null;
-  const showPodium = !hasRealLeaderboard || rows.length >= 3;
-  const showTable = !hasRealLeaderboard || rows.length > 0;
-  const showEmpty = hasRealLeaderboard && !loading && rows.length === 0;
+  const loading = realRows === null;
+  const showPodium = rows.length >= 3;
+  const showTable = rows.length > 0;
+  const showEmpty = !loading && rows.length === 0;
 
   return (
     <>
@@ -127,35 +118,7 @@ export default function HallOfFame() {
               <div className="dt">{r.date}</div>
             </div>
           ))}
-          {!hasRealLeaderboard && user && (
-            <>
-              <div className="tr you-label">
-                ▸ TU MEJOR MARCA EN {game?.title}
-              </div>
-              <div
-                className="tr you"
-                style={{ animationDelay: `${rows.length * 50 + 50}ms` }}
-              >
-                <div className="rk" style={{ color: "var(--yellow)" }}>
-                  #{String(youRank).padStart(2, "0")}
-                </div>
-                <div className="pl" style={{ color: "var(--yellow)" }}>
-                  {user.name}
-                </div>
-                <div
-                  className="sc"
-                  style={{
-                    color: "var(--yellow)",
-                    textShadow: "0 0 6px rgba(245,255,0,0.5)",
-                  }}
-                >
-                  {(youScore || 9999).toLocaleString("es-ES")}
-                </div>
-                <div className="dt">11/05/2026</div>
-              </div>
-            </>
-          )}
-          {hasRealLeaderboard && user && youReal && (
+          {user && youReal && (
             <>
               <div className="tr you-label">
                 ▸ TU MEJOR MARCA EN {game?.title}

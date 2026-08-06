@@ -1,12 +1,12 @@
-import type { ScoreRow } from "@/lib/scores";
+import type { RealScoreRow } from "@/lib/scores";
 
-export default function Leaderboard({ scores }: { scores: ScoreRow[] }) {
+export default function Leaderboard({ scores }: { scores: RealScoreRow[] }) {
   return (
     <div className="leaderboard">
       <h3>MEJORES PUNTUACIONES</h3>
       {scores.map((r, i) => (
         <div
-          key={r.name}
+          key={r.name + i}
           className={
             "lb-row" +
             (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")
@@ -16,7 +16,11 @@ export default function Leaderboard({ scores }: { scores: ScoreRow[] }) {
           <div className="pl">
             {r.name}
             <div
-              style={{ fontSize: 10, color: "var(--ink-faint)", letterSpacing: "0.1em" }}
+              style={{
+                fontSize: 10,
+                color: "var(--ink-faint)",
+                letterSpacing: "0.1em",
+              }}
             >
               {r.date}
             </div>

@@ -12,8 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
   const { user, saveScore } = useSession();
-  const engineFactory = game.engine ? ENGINE_REGISTRY[game.engine] : undefined;
-  const hasEngine = Boolean(engineFactory);
+  const engineFactory = ENGINE_REGISTRY[game.engine];
   // Tetris no tiene vidas múltiples (game over es un solo golpe) y su canvas
   // es vertical (300×600) en vez del 800×600 de Asteroides.
   const isTetris = game.id === "tetris";
@@ -23,7 +22,6 @@ export default function GamePlayer({ game }: { game: Game }) {
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  // Nivel real (asteroides, vía callback del motor) o derivado del puntaje (mock).
   const [engineLevel, setEngineLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
@@ -35,24 +33,12 @@ export default function GamePlayer({ game }: { game: Game }) {
 
   const name = typedName ?? user?.name ?? "INVITADO";
 
-  const level = hasEngine ? engineLevel : 1 + Math.floor(score / 2500);
-
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<Engine | null>(null);
 
-  // Puntuación simulada: la partida no es jugable, solo avanza el marcador.
-  useEffect(() => {
-    if (hasEngine || over || paused) return;
-    const t = setInterval(
-      () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
-      220,
-    );
-    return () => clearInterval(t);
-  }, [hasEngine, over, paused]);
-
   // Motor real: se monta una vez sobre el canvas y refleja su estado en el HUD.
   useEffect(() => {
-    if (!engineFactory || !canvasRef.current) return;
+    if (!canvasRef.current) return;
     const engine = engineFactory(canvasRef.current, {
       onScore: setScore,
       onLives: setLives,
@@ -70,26 +56,19 @@ export default function GamePlayer({ game }: { game: Game }) {
   const togglePause = () => {
     setPaused((p) => {
       const next = !p;
-      if (hasEngine) {
-        if (next) engineRef.current?.pause();
-        else engineRef.current?.resume();
-      }
+      if (next) engineRef.current?.pause();
+      else engineRef.current?.resume();
       return next;
     });
   };
 
   const finish = () => {
-    if (hasEngine) engineRef.current?.pause();
+    engineRef.current?.pause();
     setOver(true);
   };
 
   const restart = () => {
-    if (hasEngine) {
-      engineRef.current?.restart();
-    } else {
-      setScore(0);
-      setLives(3);
-    }
+    engineRef.current?.restart();
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -117,7 +96,7 @@ export default function GamePlayer({ game }: { game: Game }) {
           )}
           <div className="hud-stat level">
             <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, "0")}</div>
+            <div className="v">{String(engineLevel).padStart(2, "0")}</div>
           </div>
         </div>
         <div className="hud-actions">
@@ -138,22 +117,12 @@ export default function GamePlayer({ game }: { game: Game }) {
 
       <div className="crt">
         <div className="crt-screen">
-          {hasEngine ? (
-            <canvas
-              ref={canvasRef}
-              width={isTetris ? 300 : 800}
-              height={600}
-              className={isTetris ? "tetris-canvas" : "asteroides-canvas"}
-            />
-          ) : (
-            <div className="game-arena">
-              <div className="grid-floor"></div>
-              <div className="enemy e1"></div>
-              <div className="enemy e2"></div>
-              <div className="enemy e3"></div>
-              <div className="player-ship"></div>
-            </div>
-          )}
+          <canvas
+            ref={canvasRef}
+            width={isTetris ? 300 : 800}
+            height={600}
+            className={isTetris ? "tetris-canvas" : "asteroides-canvas"}
+          />
           {paused && !isArkanoid && (
             <div
               className="crt-content"
@@ -204,18 +173,16 @@ export default function GamePlayer({ game }: { game: Game }) {
                   className="btn yellow"
                   onClick={() => {
                     saveScore({ game: game.id, score, name });
-                    if (hasEngine) {
-                      insertScore(createClient(), {
-                        gameId: game.id,
-                        playerName: name,
-                        score,
-                      }).catch((err) => {
-                        console.error(
-                          "Error al guardar puntaje en Supabase:",
-                          err,
-                        );
-                      });
-                    }
+                    insertScore(createClient(), {
+                      gameId: game.id,
+                      playerName: name,
+                      score,
+                    }).catch((err) => {
+                      console.error(
+                        "Error al guardar puntaje en Supabase:",
+                        err,
+                      );
+                    });
                     setSaved(true);
                   }}
                 >
