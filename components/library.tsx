@@ -4,9 +4,12 @@ import { useMemo, useState } from "react";
 import GameCard from "@/components/game-card";
 import { CATS, GAMES } from "@/lib/games";
 
-// El buscador ignora tildes: "cai" encuentra CAÍDA y "gloton", GLOTÓN.
+// El buscador ignora tildes: "asteroide" encuentra ASTEROIDES.
 const norm = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 
 export default function Library() {
   const [q, setQ] = useState("");
@@ -15,7 +18,8 @@ export default function Library() {
   const filtered = useMemo(
     () =>
       GAMES.filter(
-        (g) => (cat === "TODOS" || g.cat === cat) && norm(g.title).includes(norm(q)),
+        (g) =>
+          (cat === "TODOS" || g.cat === cat) && norm(g.title).includes(norm(q)),
       ),
     [q, cat],
   );
@@ -59,7 +63,11 @@ export default function Library() {
           >
             <div
               className="pixel"
-              style={{ fontSize: 14, color: "var(--magenta)", marginBottom: 12 }}
+              style={{
+                fontSize: 14,
+                color: "var(--magenta)",
+                marginBottom: 12,
+              }}
             >
               NO HAY RESULTADOS
             </div>
