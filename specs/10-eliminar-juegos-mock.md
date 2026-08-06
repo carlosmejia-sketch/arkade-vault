@@ -1,6 +1,6 @@
 # SPEC 10 — Eliminar juegos mock, dejar solo catálogo real (Supabase)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 05 (motor real Asteroides), SPEC 06 (leaderboard Supabase), SPEC 07 (registry `ENGINE_REGISTRY`), SPEC 08 (Arkanoid), SPEC 09 (Snake)
 > **Fecha:** 2026-08-05
 > **Objetivo:** Eliminar del catálogo los 8 juegos mock sin motor real (`bloque-buster`, `caida`, `serpentina`, `gloton`, `invasores`, `rocas`, `ranaria`, `duelo-pixel`) y todo el código de soporte que solo ellos usaban (`seededScores`, ramas mock en Hall of Fame y ficha de detalle, datos inventados de home), dejando `asteroides`, `tetris`, `arkanoid` y `snake` como único catálogo, todos con motor real y leaderboard real en Supabase.
