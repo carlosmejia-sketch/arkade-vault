@@ -27,11 +27,12 @@ Estado actual: MVP funcional con 4 juegos reales y persistencia de puntajes en S
 - **Supabase** (`@supabase/ssr`, `@supabase/supabase-js`): cliente browser en `lib/supabase/client.ts` (`createBrowserClient`), cliente server en `lib/supabase/server.ts` (`createServerClient`, cookies async de Next 16, `setAll` en try/catch porque aún no hay middleware que las persista). Variables en `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_DB_PASSWORD`. MCP configurado en `.mcp.json` (proyecto `rwiimwxdcieqbwcnfavg`) — usar las herramientas `mcp__supabase__*` para inspeccionar/migrar en vez de tocar el proyecto a mano.
 - **Resend** para el formulario de contacto: `RESEND_API_KEY`, `CONTACT_TO_EMAIL`.
 
-## Skills
+## Skills y agentes
 
 - Usa siempre `/frontend-design` para diseñar la interfaz de usuario.
 - **`/spec` y `/spec-impl`** (`Klerith/fernando-skills`) **sí están instaladas** (`skills-lock.json`, `.claude/skills/spec/`, `.claude/skills/spec-impl/`, espejadas en `.agents/skills/`). Es el flujo vigente: cada feature se documenta primero en `specs/NN-nombre.md` (config en `specs/.spec-config.yml`, `AutoCreateBranch: true`) y luego se implementa con `/spec-impl`.
 - **`spec-juego`** (`.claude/skills/spec-juego/`): skill propia del proyecto para agregar un juego nuevo con motor real. `references/mapa-integracion.md` documenta los 7 puntos de integración obligatorios (`lib/games.ts`, clases `.cover-*` en `app/globals.css`, `lib/games/<slug>/engine.ts`, `components/game-player.tsx`, `app/juegos/[id]/page.tsx`, `components/hall-of-fame.tsx`, el spec mismo) y qué reutilizar sin tocar (`lib/scores.ts`, clientes Supabase, tabla `scores`, `leaderboard.tsx`, `lib/session.tsx`). `references/plantilla-spec-juego.md` es la plantilla de spec para un juego nuevo. Usar esta skill (no `/spec` genérico) al planear un juego nuevo.
+- **Agente `game-planner`** (`.claude/agents/game-planner.md`): decide _qué_ juego agregar al catálogo. Lee `lib/games.ts`, `specs/` y `references/implemented-games.md`, propone candidatos con justificación de encaje y mantiene memoria en `references/game-suggestions-todo.md`. No escribe specs ni código — su salida alimenta a `spec-juego`.
 - Hook `PostToolUse` en `.claude/settings.json` corre `.claude/hooks/format-on-write.js` (Prettier/ESLint) tras cada `Write`/`Edit`.
 
 ## Convenciones vigentes
@@ -62,6 +63,8 @@ Estado actual: MVP funcional con 4 juegos reales y persistencia de puntajes en S
 
 ## Specs (`specs/`)
 
-Flujo Spec Driven Design activo — ver sección Skills. Specs 01 a 10 ya implementadas (mock inicial → landing → about/contacto → config Supabase → Asteroides → leaderboard real → Tetris → Arkanoid → Snake → eliminación de juegos mock). Antes de iniciar trabajo nuevo, revisar `specs/` para no duplicar un spec existente y seguir la numeración consecutiva.
+Flujo Spec Driven Design activo — ver sección Skills y agentes. Specs 01 a 10 ya implementadas (mock inicial → landing → about/contacto → config Supabase → Asteroides → leaderboard real → Tetris → Arkanoid → Snake → eliminación de juegos mock). Antes de iniciar trabajo nuevo, revisar `specs/` para no duplicar un spec existente y seguir la numeración consecutiva.
+
+Pipeline para un juego nuevo: agente `game-planner` (decide qué) → `/spec-juego` (documenta el spec) → `/spec-impl` (implementa).
 
 Trabajo futuro mencionado en specs pero sin spec propio todavía: autenticación real + `middleware.ts` de sesión, sincronizar `game.best`/`game.plays` con datos reales, Realtime/Edge Functions, suite de pruebas automatizadas.
