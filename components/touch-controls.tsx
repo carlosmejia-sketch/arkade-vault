@@ -16,7 +16,9 @@ export default function TouchControls({
   );
 
   const dispatch = (code: string, type: "keydown" | "keyup") => {
-    window.dispatchEvent(new KeyboardEvent(type, { code }));
+    // Arkanoid lee e.key en vez de e.code; los demás motores leen e.code.
+    // Enviar ambos con el mismo valor cubre los dos casos sin tocar ningún engine.ts.
+    window.dispatchEvent(new KeyboardEvent(type, { code, key: code }));
   };
 
   const press = (code: string) => (e: ReactPointerEvent) => {
