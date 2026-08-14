@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
 import { ENGINE_REGISTRY } from "@/lib/games/registry";
 import type { Engine } from "@/lib/games/types";
+import { DEFAULT_SKIN, getPalette, SKINS } from "@/lib/games/skins";
+import type { GameId, SkinId } from "@/lib/games/skins";
 import { useSession } from "@/lib/session";
 import { insertScore } from "@/lib/scores";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +21,16 @@ export default function GamePlayer({ game }: { game: Game }) {
   // Arkanoid dibuja su propio overlay de pausa (con selector de nivel) sobre
   // el canvas; el overlay genérico de React lo tapa y bloquea sus clics.
   const isArkanoid = game.id === "arkanoid";
+  const hasSkins = Boolean(SKINS[game.id as GameId]);
+
+  const [skin, setSkin] = useState<SkinId>(() => {
+    if (typeof window === "undefined") return DEFAULT_SKIN;
+    const stored = window.localStorage.getItem("av_skin");
+    if (stored === "clasico" || stored === "neon" || stored === "retro") {
+      return stored;
+    }
+    return DEFAULT_SKIN;
+  });
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -39,19 +51,36 @@ export default function GamePlayer({ game }: { game: Game }) {
   // Motor real: se monta una vez sobre el canvas y refleja su estado en el HUD.
   useEffect(() => {
     if (!canvasRef.current) return;
-    const engine = engineFactory(canvasRef.current, {
-      onScore: setScore,
-      onLives: setLives,
-      onLevel: setEngineLevel,
-      onGameOver: () => setOver(true),
-    });
+    const palette = hasSkins ? getPalette(game.id as GameId, skin) : undefined;
+    const engine = engineFactory(
+      canvasRef.current,
+      {
+        onScore: setScore,
+        onLives: setLives,
+        onLevel: setEngineLevel,
+        onGameOver: () => setOver(true),
+      },
+      palette,
+    );
     engineRef.current = engine;
     engine.start();
     return () => {
       engine.destroy();
       engineRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engineFactory]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    try {
+      window.localStorage.setItem("av_skin", next);
+    } catch {
+      // localStorage puede fallar (modo privado); la skin sigue en memoria.
+    }
+    const palette = getPalette(game.id as GameId, next);
+    if (palette) engineRef.current?.setPalette?.(palette);
+  };
 
   const togglePause = () => {
     setPaused((p) => {
@@ -100,6 +129,28 @@ export default function GamePlayer({ game }: { game: Game }) {
           </div>
         </div>
         <div className="hud-actions">
+          {hasSkins && (
+            <>
+              <button
+                className={`btn${skin === "clasico" ? " yellow" : " ghost"}`}
+                onClick={() => changeSkin("clasico")}
+              >
+                CLÁSICO
+              </button>
+              <button
+                className={`btn${skin === "neon" ? " yellow" : " ghost"}`}
+                onClick={() => changeSkin("neon")}
+              >
+                NEÓN
+              </button>
+              <button
+                className={`btn${skin === "retro" ? " yellow" : " ghost"}`}
+                onClick={() => changeSkin("retro")}
+              >
+                RETRO
+              </button>
+            </>
+          )}
           <button className="btn yellow" onClick={togglePause}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
