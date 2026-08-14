@@ -11,7 +11,7 @@ Estados: `propuesto` · `rechazado` · `en-spec` · `implementado`
 | `tetris`                  | TETRIS             | PUZZLE    | yellow       | implementado | 2026-08-12 | Spec 07.                                                              |
 | `arkanoid`                | ARKANOID           | ARCADE    | magenta      | implementado | 2026-08-12 | Spec 08.                                                              |
 | `snake`                   | SNAKE              | ARCADE    | green        | implementado | 2026-08-12 | Spec 09.                                                              |
-| `pong`                    | PONG               | VERSUS    | magenta      | propuesto    | 2026-08-12 | Ver ficha — recomendado.                                              |
+| `pong`                    | PONG               | VERSUS    | magenta      | en-spec      | 2026-08-12 | Spec en `specs/game-jam/pong/` — provisto directo por el usuario.     |
 | `pixel-runner`            | PIXEL RUNNER       | ARCADE    | yellow       | propuesto    | 2026-08-12 | Ver ficha — alternativa.                                              |
 | `memory-match`            | MEMORY MATCH       | PUZZLE    | cyan         | propuesto    | 2026-08-12 | Ver ficha — alternativa baja complejidad.                             |
 | `topo-golpe`              | TOPO-GOLPE         | ARCADE    | cyan         | propuesto    | 2026-08-12 | Ver ficha — bajo riesgo, motor subutilizado.                          |
@@ -55,7 +55,17 @@ Plantilla para candidatos nuevos (copiar debajo de esta línea):
 Las 4 filas iniciales corresponden a juegos ya implementados (specs 05–09);
 no llevan ficha porque su historial vive en su spec correspondiente.
 
-### `pong` — PONG · `propuesto` · 2026-08-12
+### `pong` — PONG · `en-spec` · 2026-08-12
+
+- **Actualización:** el usuario decidió directamente implementar Pong (no vino de
+  la recomendación consolidada de abajo, aunque coincide con ella). Spec técnico
+  y concepto ya escritos en `specs/game-jam/pong/01-juego-pong.md` y
+  `02-concepto-pong.md`. Puntaje resuelto como rally (+10 por rebote del
+  jugador) + bono (+50 cuando la IA falla) + sistema de 3 vidas, análogo al
+  patrón ya usado por Arkanoid. Categoría `VERSUS` se agrega a `CATS` como
+  parte del alcance de esa spec.
+
+### `pong` — PONG · `propuesto` · 2026-08-12 (ficha original)
 
 - **Categoría / color**: VERSUS / magenta (reutilizable; único hueco real de
   color libre porque `magenta` ya lo usa `arkanoid` pero `VERSUS` no existe
