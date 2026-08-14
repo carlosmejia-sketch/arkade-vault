@@ -21,6 +21,8 @@
 // - pause()/resume() congelan/reanudan el loop (dt no avanza en pausa).
 
 import type { Engine, EngineCallbacks } from "../types";
+import type { GamePalette } from "../skins";
+import { getPalette } from "../skins";
 import type { BlockColor } from "./levels";
 import { LEVELS } from "./levels";
 import {
@@ -31,6 +33,17 @@ import {
   EXPLOSION_DURATION,
   loadSpritesheet,
 } from "./sprites";
+
+// Mapeo 1:1 de BlockColor (asset del spritesheet) al rol de tinte de GamePalette.
+const BLOCK_TINT_ROLE: Record<BlockColor, keyof GamePalette> = {
+  red: "bloqueRojo",
+  yellow: "bloqueAmarillo",
+  cyan: "bloqueCyan",
+  magenta: "bloqueMagenta",
+  hotpink: "bloqueRosa",
+  green: "bloqueVerde",
+  gray: "bloqueGris",
+};
 
 const W = 800;
 const H = 600;
@@ -80,8 +93,96 @@ type GameState = "playing" | "gameover" | "win";
 export function createArkanoidEngine(
   canvas: HTMLCanvasElement,
   callbacks: EngineCallbacks,
+  initialPalette: GamePalette = getPalette("arkanoid", "clasico")!,
 ): Engine {
   const ctx = canvas.getContext("2d")!;
+  let palette = initialPalette;
+
+  // Cachea el sprite tintado por (elemento, color) para no recrear el canvas
+  // offscreen en cada frame (hasta ~60 bloques vivos en el nivel 1).
+  const tintCache = new Map<string, HTMLCanvasElement>();
+
+  function getTinted(
+    cacheKey: string,
+    w: number,
+    h: number,
+    color: string,
+    drawSprite: (offscreenCtx: CanvasRenderingContext2D) => void,
+  ): HTMLCanvasElement {
+    const cached = tintCache.get(cacheKey);
+    if (cached) return cached;
+    const oc = document.createElement("canvas");
+    oc.width = w;
+    oc.height = h;
+    const octx = oc.getContext("2d")!;
+    drawSprite(octx);
+    octx.globalCompositeOperation = "source-atop";
+    octx.globalAlpha = 0.6;
+    octx.fillStyle = color;
+    octx.fillRect(0, 0, w, h);
+    tintCache.set(cacheKey, oc);
+    return oc;
+  }
+
+  function drawPaddleTinted(x: number, y: number, w: number, h: number) {
+    if (!palette.tinteSprites) {
+      drawPaddleSprite(ctx, x, y, w, h);
+      return;
+    }
+    const canvas = getTinted("paddle", w, h, palette.entidadPrincipal, (octx) =>
+      drawPaddleSprite(octx, 0, 0, w, h),
+    );
+    ctx.drawImage(canvas, x, y);
+  }
+
+  function drawBallTinted(x: number, y: number, w: number, h: number) {
+    if (!palette.tinteSprites) {
+      drawBallSprite(ctx, x, y, w, h);
+      return;
+    }
+    const canvas = getTinted("ball", w, h, palette.entidadSecundaria, (octx) =>
+      drawBallSprite(octx, 0, 0, w, h),
+    );
+    ctx.drawImage(canvas, x, y);
+  }
+
+  function drawBlockTinted(
+    color: BlockColor,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+  ) {
+    const tint = palette[BLOCK_TINT_ROLE[color]] as string | undefined;
+    if (!palette.tinteSprites || !tint) {
+      drawBlockSprite(ctx, color, x, y, w, h);
+      return;
+    }
+    const canvas = getTinted(`block:${color}`, w, h, tint, (octx) =>
+      drawBlockSprite(octx, color, 0, 0, w, h),
+    );
+    ctx.drawImage(canvas, x, y);
+  }
+
+  function drawExplosionTinted(
+    color: BlockColor,
+    elapsed: number,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+  ) {
+    const tint = palette[BLOCK_TINT_ROLE[color]] as string | undefined;
+    if (!palette.tinteSprites || !tint) {
+      drawExplosionFrame(ctx, color, elapsed, x, y, w, h);
+      return;
+    }
+    const idx = Math.min(Math.floor((elapsed / EXPLOSION_DURATION) * 4), 3);
+    const canvas = getTinted(`explosion:${color}:${idx}`, w, h, tint, (octx) =>
+      drawExplosionFrame(octx, color, elapsed, 0, 0, w, h),
+    );
+    ctx.drawImage(canvas, x, y);
+  }
 
   const bounceSound = new Audio("/arkanoid/sounds/ball-bounce.mp3");
   const breakSound = new Audio("/arkanoid/sounds/break-sound.mp3");
@@ -296,7 +397,7 @@ export function createArkanoidEngine(
   function drawOverlay(message: string) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = palette.overlay;
     ctx.font = "bold 64px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -307,19 +408,20 @@ export function createArkanoidEngine(
     ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = palette.overlay;
     ctx.font = "bold 56px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("PAUSA", W / 2, 260);
 
     ctx.font = "bold 16px monospace";
+    ctx.fillStyle = palette.textoHud;
     ctx.fillText("Saltar al nivel:", W / 2, 310);
 
     for (let i = 0; i < 5; i++) {
       const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
       const isActive = i + 1 === currentLevel;
-      ctx.fillStyle = isActive ? "#f0c040" : "#444";
+      ctx.fillStyle = isActive ? palette.acento : "#444";
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -339,31 +441,23 @@ export function createArkanoidEngine(
   }
 
   function draw() {
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = palette.fondo;
     ctx.fillRect(0, 0, W, H);
 
     for (const block of blocks) {
       if (block.alive)
-        drawBlockSprite(ctx, block.color, block.x, block.y, block.w, block.h);
+        drawBlockTinted(block.color, block.x, block.y, block.w, block.h);
     }
 
     for (const exp of explosions) {
-      drawExplosionFrame(
-        ctx,
-        exp.color,
-        exp.elapsed,
-        exp.x,
-        exp.y,
-        exp.w,
-        exp.h,
-      );
+      drawExplosionTinted(exp.color, exp.elapsed, exp.x, exp.y, exp.w, exp.h);
     }
 
-    drawPaddleSprite(ctx, paddle.x, paddle.y, paddle.w, paddle.h);
-    drawBallSprite(ctx, ball.x, ball.y, ball.w, ball.h);
+    drawPaddleTinted(paddle.x, paddle.y, paddle.w, paddle.h);
+    drawBallTinted(ball.x, ball.y, ball.w, ball.h);
 
     if (state === "playing") {
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = palette.hud;
       ctx.font = "bold 18px monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -374,7 +468,7 @@ export function createArkanoidEngine(
       const ballSpacing = 4;
       for (let i = 0; i < lives; i++) {
         const bx = W - 10 - (lives - i) * (ballSize + ballSpacing);
-        drawBallSprite(ctx, bx, 10, ballSize, ballSize);
+        drawBallTinted(bx, 10, ballSize, ballSize);
       }
     }
 
@@ -455,5 +549,10 @@ export function createArkanoidEngine(
     canvas.removeEventListener("click", onClick);
   }
 
-  return { start, pause, resume, restart, destroy };
+  function setPalette(next: GamePalette) {
+    palette = next;
+    tintCache.clear();
+  }
+
+  return { start, pause, resume, restart, destroy, setPalette };
 }

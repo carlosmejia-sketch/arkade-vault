@@ -15,6 +15,8 @@
 //   restart().
 
 import type { Engine, EngineCallbacks } from "../types";
+import type { GamePalette } from "../skins";
+import { getPalette } from "../skins";
 import { FRUIT_SPRITES, FRUIT_SHEET_SRC } from "./sprites";
 
 const W = 800;
@@ -45,8 +47,10 @@ export type SnakeEngine = Engine;
 export function createSnakeEngine(
   canvas: HTMLCanvasElement,
   callbacks: EngineCallbacks,
+  initialPalette: GamePalette = getPalette("snake", "clasico")!,
 ): SnakeEngine {
   const ctx = canvas.getContext("2d")!;
+  let palette = initialPalette;
 
   const fruitSheet = new Image();
   fruitSheet.src = FRUIT_SHEET_SRC;
@@ -196,20 +200,21 @@ export function createSnakeEngine(
         CELL - 4,
       );
     } else {
-      ctx.fillStyle = "#ff2d55";
+      ctx.fillStyle = palette.acento;
       ctx.fillRect(dx + 4, dy + 4, CELL - 8, CELL - 8);
     }
   }
 
   function drawSnake() {
     snake.forEach((s, i) => {
-      ctx.fillStyle = i === 0 ? "#00ff88" : "rgba(0, 255, 136, 0.75)";
+      ctx.fillStyle =
+        i === 0 ? palette.entidadPrincipal : palette.entidadSecundaria;
       ctx.fillRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2);
     });
   }
 
   function drawHUD() {
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = palette.hud;
     ctx.font = "15px monospace";
     ctx.textAlign = "left";
     ctx.fillText(`SCORE  ${score}`, 14, 22);
@@ -219,16 +224,16 @@ export function createSnakeEngine(
 
   function drawOverlay(title: string, sub: string) {
     ctx.textAlign = "center";
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = palette.overlay;
     ctx.font = "bold 46px monospace";
     ctx.fillText(title, W / 2, H / 2 - 18);
     ctx.font = "18px monospace";
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.fillStyle = palette.textoHud;
     ctx.fillText(sub, W / 2, H / 2 + 22);
   }
 
   function draw() {
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = palette.fondo;
     ctx.fillRect(0, 0, W, H);
 
     drawFruit();
@@ -294,5 +299,9 @@ export function createSnakeEngine(
     window.removeEventListener("keydown", onKeyDown);
   }
 
-  return { start, pause, resume, restart, destroy };
+  function setPalette(next: GamePalette) {
+    palette = next;
+  }
+
+  return { start, pause, resume, restart, destroy, setPalette };
 }
