@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { TouchControlConfig } from "@/lib/games/touch-config";
 
@@ -21,24 +21,36 @@ export default function TouchControls({
     window.dispatchEvent(new KeyboardEvent(type, { code, key: code }));
   };
 
-  const press = (code: string) => (e: ReactPointerEvent) => {
-    e.preventDefault();
-    dispatch(code, "keydown");
-    if (config.repeatCodes.includes(code) && !intervalRef.current.has(code)) {
-      const id = setInterval(() => dispatch(code, "keydown"), REPEAT_MS);
-      intervalRef.current.set(code, id);
-    }
-  };
+  const handlePress = useCallback(
+    (e: ReactPointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      const code = e.currentTarget.dataset.code;
+      if (!code) return;
+      const intervals = intervalRef.current;
+      dispatch(code, "keydown");
+      if (config.repeatCodes.includes(code) && !intervals.has(code)) {
+        const id = setInterval(() => dispatch(code, "keydown"), REPEAT_MS);
+        intervals.set(code, id);
+      }
+    },
+    [config.repeatCodes],
+  );
 
-  const release = (code: string) => (e: ReactPointerEvent) => {
-    e.preventDefault();
-    const id = intervalRef.current.get(code);
-    if (id) {
-      clearInterval(id);
-      intervalRef.current.delete(code);
-    }
-    dispatch(code, "keyup");
-  };
+  const handleRelease = useCallback(
+    (e: ReactPointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      const code = e.currentTarget.dataset.code;
+      if (!code) return;
+      const intervals = intervalRef.current;
+      const id = intervals.get(code);
+      if (id) {
+        clearInterval(id);
+        intervals.delete(code);
+      }
+      dispatch(code, "keyup");
+    },
+    [],
+  );
 
   const hasButtons = Boolean(config.buttonA || config.buttonB);
 
@@ -48,10 +60,11 @@ export default function TouchControls({
         {config.up && (
           <button
             className="dpad-btn dpad-up"
-            onPointerDown={press(config.up)}
-            onPointerUp={release(config.up)}
-            onPointerLeave={release(config.up)}
-            onPointerCancel={release(config.up)}
+            data-code={config.up}
+            onPointerDown={handlePress}
+            onPointerUp={handleRelease}
+            onPointerLeave={handleRelease}
+            onPointerCancel={handleRelease}
             aria-label="Arriba"
           >
             ▲
@@ -59,20 +72,22 @@ export default function TouchControls({
         )}
         <button
           className="dpad-btn dpad-left"
-          onPointerDown={press(config.left)}
-          onPointerUp={release(config.left)}
-          onPointerLeave={release(config.left)}
-          onPointerCancel={release(config.left)}
+          data-code={config.left}
+          onPointerDown={handlePress}
+          onPointerUp={handleRelease}
+          onPointerLeave={handleRelease}
+          onPointerCancel={handleRelease}
           aria-label="Izquierda"
         >
           ◀
         </button>
         <button
           className="dpad-btn dpad-right"
-          onPointerDown={press(config.right)}
-          onPointerUp={release(config.right)}
-          onPointerLeave={release(config.right)}
-          onPointerCancel={release(config.right)}
+          data-code={config.right}
+          onPointerDown={handlePress}
+          onPointerUp={handleRelease}
+          onPointerLeave={handleRelease}
+          onPointerCancel={handleRelease}
           aria-label="Derecha"
         >
           ▶
@@ -80,10 +95,11 @@ export default function TouchControls({
         {config.down && (
           <button
             className="dpad-btn dpad-down"
-            onPointerDown={press(config.down)}
-            onPointerUp={release(config.down)}
-            onPointerLeave={release(config.down)}
-            onPointerCancel={release(config.down)}
+            data-code={config.down}
+            onPointerDown={handlePress}
+            onPointerUp={handleRelease}
+            onPointerLeave={handleRelease}
+            onPointerCancel={handleRelease}
             aria-label="Abajo"
           >
             ▼
@@ -95,10 +111,11 @@ export default function TouchControls({
           {config.buttonA && (
             <button
               className="action-btn"
-              onPointerDown={press(config.buttonA.code)}
-              onPointerUp={release(config.buttonA.code)}
-              onPointerLeave={release(config.buttonA.code)}
-              onPointerCancel={release(config.buttonA.code)}
+              data-code={config.buttonA.code}
+              onPointerDown={handlePress}
+              onPointerUp={handleRelease}
+              onPointerLeave={handleRelease}
+              onPointerCancel={handleRelease}
             >
               {config.buttonA.label}
             </button>
@@ -106,10 +123,11 @@ export default function TouchControls({
           {config.buttonB && (
             <button
               className="action-btn"
-              onPointerDown={press(config.buttonB.code)}
-              onPointerUp={release(config.buttonB.code)}
-              onPointerLeave={release(config.buttonB.code)}
-              onPointerCancel={release(config.buttonB.code)}
+              data-code={config.buttonB.code}
+              onPointerDown={handlePress}
+              onPointerUp={handleRelease}
+              onPointerLeave={handleRelease}
+              onPointerCancel={handleRelease}
             >
               {config.buttonB.label}
             </button>
