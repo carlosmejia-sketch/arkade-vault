@@ -2,12 +2,12 @@
 
 Estados: `pendiente` · `en-spec` · `implementado`
 
-| Juego      | ID           | clasico | neon | retro | Estado    | Spec                           | Fecha      |
-| ---------- | ------------ | ------- | ---- | ----- | --------- | ------------------------------ | ---------- |
-| Asteroides | `asteroides` | ✓       | ✓    | ✓     | en-spec   | `specs/11-skins-asteroides.md` | 2026-08-14 |
-| Tetris     | `tetris`     | —       | —    | —     | pendiente | —                              | —          |
-| Arkanoid   | `arkanoid`   | ✓       | ✓    | ✓     | en-spec   | `specs/13-skins-arkanoid.md`   | 2026-08-14 |
-| Snake      | `snake`      | ✓       | ✓    | ✓     | en-spec   | `specs/12-skins-snake.md`      | 2026-08-14 |
+| Juego      | ID           | clasico | neon | retro | Estado       | Spec                           | Fecha      |
+| ---------- | ------------ | ------- | ---- | ----- | ------------ | ------------------------------ | ---------- |
+| Asteroides | `asteroides` | ✓       | ✓    | ✓     | en-spec      | `specs/11-skins-asteroides.md` | 2026-08-14 |
+| Tetris     | `tetris`     | —       | —    | —     | pendiente    | —                              | —          |
+| Arkanoid   | `arkanoid`   | ✓       | ✓    | ✓     | implementado | `specs/13-skins-arkanoid.md`   | 2026-08-14 |
+| Snake      | `snake`      | ✓       | ✓    | ✓     | en-spec      | `specs/12-skins-snake.md`      | 2026-08-14 |
 
 ## Fichas
 
@@ -163,7 +163,7 @@ Estados: `pendiente` · `en-spec` · `implementado`
 - `proyectil`/`particula`/`peligro` son alias sin consumidor de `acento` en las 3 skins — deuda de diseño del `GamePalette` compartido (pensado para Asteroides en SPEC 11), no de este spec.
 - Implementación (`lib/games/skins.ts` entrada `snake`, migración de `lib/games/snake/engine.ts`) todavía no ejecutada — spec en estado Borrador, pendiente de `/spec-impl specs/12-skins-snake.md`.
 
-### `arkanoid` — Arkanoid · `en-spec` · 2026-08-14
+### `arkanoid` — Arkanoid · `implementado` · 2026-08-14
 
 **Roles de color detectados:**
 

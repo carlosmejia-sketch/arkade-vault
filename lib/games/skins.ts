@@ -19,6 +19,16 @@ export type GamePalette = {
   hud: string;
   overlay: string;
   textoHud: string;
+  // Roles propios de Arkanoid: recoloreo por tinte de un spritesheet en vez de
+  // dibujo vectorial. Ver specs/13-skins-arkanoid.md.
+  tinteSprites?: boolean;
+  bloqueRojo?: string;
+  bloqueAmarillo?: string;
+  bloqueCyan?: string;
+  bloqueMagenta?: string;
+  bloqueRosa?: string;
+  bloqueVerde?: string;
+  bloqueGris?: string;
 };
 
 export const DEFAULT_SKIN: SkinId = "clasico";
@@ -98,6 +108,68 @@ export const SKINS: Partial<Record<GameId, Record<SkinId, GamePalette>>> = {
       hud: "#33ff66",
       overlay: "#ffb000",
       textoHud: "#1f9a44",
+    },
+  },
+  arkanoid: {
+    clasico: {
+      fondo: "#000000",
+      entidadPrincipal: "#e6e6e6",
+      entidadSecundaria: "#c9c9c9",
+      proyectil: "#ffffff",
+      acento: "#f0c040",
+      peligro: "#ff8200",
+      particula: "#ffffff",
+      hud: "#ffffff",
+      overlay: "#ffffff",
+      textoHud: "#ffffff",
+      tinteSprites: false,
+      bloqueRojo: "#e63946",
+      bloqueAmarillo: "#e8a33d",
+      bloqueCyan: "#4a90d9",
+      bloqueMagenta: "#7b68c9",
+      bloqueRosa: "#e069a6",
+      bloqueVerde: "#5cb85c",
+      bloqueGris: "#8c8c9c",
+    },
+    neon: {
+      fondo: "#0a0a0f",
+      entidadPrincipal: "#00f5ff",
+      entidadSecundaria: "#f5ff00",
+      proyectil: "#f5ff00",
+      acento: "#00ff88",
+      peligro: "#ff6a00",
+      particula: "rgba(255, 255, 255, 0.9)",
+      hud: "#00f5ff",
+      overlay: "#f5ff00",
+      textoHud: "rgba(255, 255, 255, 0.75)",
+      tinteSprites: true,
+      bloqueRojo: "#ff5a3a",
+      bloqueAmarillo: "#ffcc00",
+      bloqueCyan: "#1499a6",
+      bloqueMagenta: "#ff006e",
+      bloqueRosa: "#ff8fbf",
+      bloqueVerde: "#7dffb2",
+      bloqueGris: "#5c5c70",
+    },
+    retro: {
+      fondo: "#150a00",
+      entidadPrincipal: "#ffb000",
+      entidadSecundaria: "#fff2c2",
+      proyectil: "#fff2c2",
+      acento: "#ff7a00",
+      peligro: "#b34700",
+      particula: "#ffe9b3",
+      hud: "#ffb000",
+      overlay: "#ffb000",
+      textoHud: "#b3792a",
+      tinteSprites: true,
+      bloqueRojo: "#ff5030",
+      bloqueAmarillo: "#ffb000",
+      bloqueCyan: "#ffe9b3",
+      bloqueMagenta: "#a05a2a",
+      bloqueRosa: "#ff7a52",
+      bloqueVerde: "#5c8a35",
+      bloqueGris: "#7a5a3a",
     },
   },
 };
