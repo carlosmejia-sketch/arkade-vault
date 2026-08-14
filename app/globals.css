@@ -1581,9 +1581,13 @@ a {
 @media (max-width: 720px) {
   .hall-table .th,
   .hall-table .tr {
-    grid-template-columns: 50px 1fr 90px 90px;
+    grid-template-columns: 50px minmax(0, 1fr) 90px 90px;
     font-size: 12px;
     padding: 10px 12px;
+  }
+  .hall-table .th {
+    font-size: 8px;
+    overflow-wrap: break-word;
   }
   .av-grid {
     padding: 0 16px;
