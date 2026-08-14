@@ -1,6 +1,6 @@
 # SPEC 14 — Controles táctiles del reproductor
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 05 (motor Asteroides), SPEC 07 (motor Tetris), SPEC 08 (motor Arkanoid), SPEC 09 (motor Snake)
 > **Fecha:** 2026-08-14
 > **Objetivo:** Agregar en `/juegos/[id]/jugar` un panel táctil (D-pad + hasta 2 botones) debajo del canvas, visible solo en pantallas táctiles, que dispara los mismos eventos de teclado que ya escuchan los 4 motores sin modificar ningún `engine.ts`.
