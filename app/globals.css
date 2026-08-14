@@ -2780,6 +2780,91 @@ a {
   animation: blink 1s steps(1) infinite;
 }
 
+/* ===== controles táctiles (SPEC 14) — solo pantallas táctiles reales ===== */
+@media (pointer: coarse) {
+  .touch-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .dpad {
+    position: relative;
+    width: 132px;
+    height: 132px;
+    flex-shrink: 0;
+  }
+  .dpad-btn {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+    color: var(--cyan);
+    font-size: 16px;
+    line-height: 1;
+    touch-action: none;
+    user-select: none;
+  }
+  .dpad-btn:active {
+    background: var(--cyan);
+    color: var(--bg);
+  }
+  .dpad-up {
+    top: 0;
+    left: 44px;
+  }
+  .dpad-left {
+    top: 44px;
+    left: 0;
+  }
+  .dpad-right {
+    top: 44px;
+    left: 88px;
+  }
+  .dpad-down {
+    top: 88px;
+    left: 44px;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .action-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--magenta);
+    color: var(--magenta);
+    font-family: var(--pixel);
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    touch-action: none;
+    user-select: none;
+  }
+  .action-btn:active {
+    background: var(--magenta);
+    color: var(--bg);
+  }
+}
+@media not all and (pointer: coarse) {
+  .touch-controls {
+    display: none;
+  }
+}
+
 /* ===== accesibilidad: foco visible + movimiento reducido ===== */
 :focus-visible {
   outline: 2px solid var(--cyan);

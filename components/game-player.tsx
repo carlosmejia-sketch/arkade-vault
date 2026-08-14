@@ -10,6 +10,8 @@ import type { GameId, SkinId } from "@/lib/games/skins";
 import { useSession } from "@/lib/session";
 import { insertScore } from "@/lib/scores";
 import { createClient } from "@/lib/supabase/client";
+import TouchControls from "@/components/touch-controls";
+import { TOUCH_CONFIG } from "@/lib/games/touch-config";
 
 export default function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
@@ -204,6 +206,8 @@ export default function GamePlayer({ game }: { game: Game }) {
           <span>CARGA · 1MB</span>
         </div>
       </div>
+
+      <TouchControls config={TOUCH_CONFIG[game.id as GameId]} />
 
       {over && (
         <div className="modal-bd">
