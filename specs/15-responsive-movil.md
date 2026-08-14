@@ -1,6 +1,6 @@
 # SPEC 15 — Diseño responsivo en pantallas móviles
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01 (pantallas base), SPEC 02 (home), SPEC 03 (about/contacto), SPEC 14 (controles táctiles del reproductor)
 > **Fecha:** 2026-08-14
 > **Objetivo:** Eliminar el desbordamiento horizontal y los elementos recortados en pantallas de celular (~360–428px) en las 7 pantallas del sitio y el `Nav` compartido, sin alterar el canvas ni el panel de controles táctiles del reproductor (SPEC 14).
