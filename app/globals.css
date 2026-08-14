@@ -334,6 +334,9 @@ a {
   .av-nav .coin-counter {
     display: none;
   }
+  .av-nav .auth-btn {
+    display: none;
+  }
   .av-nav .hamburger {
     display: inline-flex;
   }
@@ -985,6 +988,7 @@ a {
 .hud-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .crt {
@@ -1577,9 +1581,13 @@ a {
 @media (max-width: 720px) {
   .hall-table .th,
   .hall-table .tr {
-    grid-template-columns: 50px 1fr 90px 90px;
+    grid-template-columns: 50px minmax(0, 1fr) 90px 90px;
     font-size: 12px;
     padding: 10px 12px;
+  }
+  .hall-table .th {
+    font-size: 8px;
+    overflow-wrap: break-word;
   }
   .av-grid {
     padding: 0 16px;
@@ -2110,7 +2118,7 @@ a {
 }
 @media (max-width: 900px) {
   .activity-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .activity-card {
