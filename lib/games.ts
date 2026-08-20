@@ -2,6 +2,9 @@
 
 export type GameCategory = "ARCADE" | "PUZZLE" | "SHOOTER" | "VERSUS";
 export type GameColor = "cyan" | "magenta" | "green" | "yellow";
+// Nota de implementación: el spec original de Frogger pedía tinte "lime";
+// se usa "green" (existente) para no ampliar este tipo compartido por
+// game-card/leaderboard solo por una variante cromática — ver spec.
 
 export type Game = {
   /** Slug de la ruta: "asteroides", "tetris", … */
@@ -72,6 +75,18 @@ export const GAMES: readonly Game[] = [
     engine: "snake",
     best: 4200,
     plays: "0.2K",
+  },
+  {
+    id: "frogger",
+    title: "FROGGER",
+    short: "Cruza la carretera y el río sin convertirte en papilla.",
+    long: "Guía a tu rana a través de una carretera repleta de coches y un río de troncos y tortugas flotantes. Llena las cinco bocas del otro lado para completar la ronda; cada nivel acelera el tráfico y acorta el tiempo. Tres vidas y mucho asfalto por delante.",
+    cat: "ARCADE",
+    cover: "cover-frogger",
+    color: "green",
+    engine: "frogger",
+    best: 0,
+    plays: "0.0K",
   },
 ];
 

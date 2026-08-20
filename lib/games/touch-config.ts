@@ -49,4 +49,15 @@ export const TOUCH_CONFIG: Record<GameId, TouchControlConfig> = {
     buttonB: null,
     repeatCodes: [],
   },
+  // Config mínima para que TouchControls no truene con Frogger — el diseño
+  // táctil fino (tamaño de hitbox, layout) se cubre en el spec de mobile-porter.
+  frogger: {
+    up: "ArrowUp",
+    down: "ArrowDown",
+    left: "ArrowLeft",
+    right: "ArrowRight",
+    buttonA: null,
+    buttonB: null,
+    repeatCodes: [],
+  },
 };

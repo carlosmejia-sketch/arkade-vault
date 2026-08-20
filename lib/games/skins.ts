@@ -4,7 +4,7 @@
 
 export type SkinId = "clasico" | "neon" | "retro";
 
-export type GameId = "asteroides" | "tetris" | "arkanoid" | "snake";
+export type GameId = "asteroides" | "tetris" | "arkanoid" | "snake" | "frogger";
 
 // Roles de color de Asteroides. `rejilla` no aplica: el motor es vectorial y
 // no dibuja grilla de fondo.
