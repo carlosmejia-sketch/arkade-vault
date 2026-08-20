@@ -90,6 +90,37 @@ export function createTetrisEngine(
 ): Engine {
   const ctx = canvas.getContext("2d")!;
 
+  // El canvas se escala por CSS (.tetris-canvas, height:100%/width:auto); sin
+  // ajustar por devicePixelRatio el bloque se ve borroso en pantallas de alta
+  // densidad (checklist, regla 18). El sistema de coordenadas lógico sigue
+  // siendo W x H — solo cambia la resolución del buffer físico.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  // Grilla de fondo cacheada en un canvas offscreen: nunca cambia entre
+  // frames, así que se dibuja una sola vez aquí en vez de recorrer 28 líneas
+  // por frame dentro de draw() (checklist, regla 11).
+  const gridCache = document.createElement("canvas");
+  gridCache.width = W;
+  gridCache.height = H;
+  const gridCacheCtx = gridCache.getContext("2d")!;
+  gridCacheCtx.strokeStyle = "#22222e";
+  gridCacheCtx.lineWidth = 0.5;
+  for (let c = 1; c < COLS; c++) {
+    gridCacheCtx.beginPath();
+    gridCacheCtx.moveTo(c * BLOCK, 0);
+    gridCacheCtx.lineTo(c * BLOCK, H);
+    gridCacheCtx.stroke();
+  }
+  for (let r = 1; r < ROWS; r++) {
+    gridCacheCtx.beginPath();
+    gridCacheCtx.moveTo(0, r * BLOCK);
+    gridCacheCtx.lineTo(W, r * BLOCK);
+    gridCacheCtx.stroke();
+  }
+
   let board: number[][];
   let current: Piece;
   let next: Piece;
@@ -223,27 +254,10 @@ export function createTetrisEngine(
     ctx.globalAlpha = 1;
   }
 
-  function drawGrid() {
-    ctx.strokeStyle = "#22222e";
-    ctx.lineWidth = 0.5;
-    for (let c = 1; c < COLS; c++) {
-      ctx.beginPath();
-      ctx.moveTo(c * BLOCK, 0);
-      ctx.lineTo(c * BLOCK, ROWS * BLOCK);
-      ctx.stroke();
-    }
-    for (let r = 1; r < ROWS; r++) {
-      ctx.beginPath();
-      ctx.moveTo(0, r * BLOCK);
-      ctx.lineTo(COLS * BLOCK, r * BLOCK);
-      ctx.stroke();
-    }
-  }
-
   function draw() {
     ctx.fillStyle = "#1a1a25";
     ctx.fillRect(0, 0, W, H);
-    drawGrid();
+    ctx.drawImage(gridCache, 0, 0);
 
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++) drawBlock(c, r, board[r][c]);
@@ -324,10 +338,16 @@ export function createTetrisEngine(
   let lastTime: number | null = null;
   let running = false;
   let gameOverEmitted = false;
+  let wasRunningBeforeHidden = false;
+
+  // dt en ms; se acota a 50ms (equivalente a 20fps) para que un frame largo
+  // (pestaña recién visible, GC) no acumule de golpe varias caídas en un
+  // mismo tick — checklist de performance, regla 1.
+  const MAX_DT_MS = 50;
 
   function loop(ts: number) {
     if (!running) return;
-    const dt = lastTime === null ? 0 : ts - lastTime;
+    const dt = lastTime === null ? 0 : Math.min(ts - lastTime, MAX_DT_MS);
     lastTime = ts;
 
     if (state === "playing") {
@@ -349,13 +369,40 @@ export function createTetrisEngine(
       callbacks.onGameOver(score);
     }
     draw();
+
+    // El loop se detiene tras dibujar el frame final de game over en vez de
+    // seguir reprogramando rAF indefinidamente — evita gastar CPU en `draw()`
+    // (incluido el template literal del overlay) mientras el jugador deja la
+    // pantalla de game over abierta (checklist, reglas 5 y 8).
+    if (state === "gameover") {
+      running = false;
+      rafId = null;
+      return;
+    }
     rafId = requestAnimationFrame(loop);
   }
 
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      if (running) {
+        wasRunningBeforeHidden = true;
+        pause();
+      }
+    } else if (wasRunningBeforeHidden) {
+      wasRunningBeforeHidden = false;
+      resume();
+    }
+  };
+
   function start() {
+    // Idempotente: evita listeners duplicados y un rAF huérfano si se llama
+    // dos veces sin destroy() intermedio (checklist, regla 3).
+    if (running) return;
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     gameOverEmitted = false;
+    wasRunningBeforeHidden = false;
     callbacks.onLives(1);
     running = true;
     lastTime = null;
@@ -387,6 +434,7 @@ export function createTetrisEngine(
   function destroy() {
     pause();
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   return { start, pause, resume, restart, destroy };

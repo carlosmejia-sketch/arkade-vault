@@ -30,20 +30,59 @@ const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
 
 // Aplica una opacidad al color de un rol de paleta (hex u rgba), multiplicando
 // por cualquier alpha que ya traiga el color (p. ej. `particula` en neon).
-function withAlpha(color: string, alpha: number): string {
+//
+// El parseo (regex/parseInt) se cachea por string de color: la paleta es
+// estática entre llamadas a setPalette(), así que reparsear el mismo color en
+// cada partícula de cada frame (checklist de performance, regla 9) era trabajo
+// repetido innecesario. Solo se recalcula el `rgba(...)` final, que sí depende
+// del alpha variable por partícula.
+type ParsedColor = { r: number; g: number; b: number; baseAlpha: number };
+const colorParseCache = new Map<string, ParsedColor>();
+
+function parseColor(color: string): ParsedColor {
+  const cached = colorParseCache.get(color);
+  if (cached) return cached;
   const rgbaMatch = color.match(
     /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/,
   );
+  let parsed: ParsedColor;
   if (rgbaMatch) {
     const [, r, g, b, a] = rgbaMatch;
-    const baseAlpha = a !== undefined ? parseFloat(a) : 1;
-    return `rgba(${r}, ${g}, ${b}, ${(baseAlpha * alpha).toFixed(3)})`;
+    parsed = {
+      r: Number(r),
+      g: Number(g),
+      b: Number(b),
+      baseAlpha: a !== undefined ? parseFloat(a) : 1,
+    };
+  } else {
+    const hex = color.replace("#", "");
+    parsed = {
+      r: parseInt(hex.slice(0, 2), 16),
+      g: parseInt(hex.slice(2, 4), 16),
+      b: parseInt(hex.slice(4, 6), 16),
+      baseAlpha: 1,
+    };
   }
-  const hex = color.replace("#", "");
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+  colorParseCache.set(color, parsed);
+  return parsed;
+}
+
+function withAlpha(color: string, alpha: number): string {
+  const { r, g, b, baseAlpha } = parseColor(color);
+  return `rgba(${r}, ${g}, ${b}, ${(baseAlpha * alpha).toFixed(3)})`;
+}
+
+// Elimina en el propio arreglo (sin crear uno nuevo) los elementos con
+// `dead === true`, preservando el orden relativo de los que sobreviven.
+// Sustituye los `arr = arr.filter(e => !e.dead)` que antes se ejecutaban cada
+// frame para bullets/particles/powerUps/asteroids (checklist de performance,
+// regla 7): mismo resultado, sin reasignar ni allocar un arreglo nuevo.
+function compact<T extends { dead: boolean }>(arr: T[]): void {
+  let write = 0;
+  for (let read = 0; read < arr.length; read++) {
+    if (!arr[read].dead) arr[write++] = arr[read];
+  }
+  arr.length = write;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -356,6 +395,21 @@ export function createAsteroidesEngine(
   const ctx = canvas.getContext("2d")!;
   let palette = initialPalette;
 
+  // El canvas se escala por CSS al tamaño del contenedor `.crt-screen`
+  // (`.asteroides-canvas { width: 100%; height: 100% }`); sin ajustar por
+  // devicePixelRatio, el backing store queda fijo en 800x600 y el navegador
+  // reescala esos píxeles al tamaño real de pantalla, difuminando las líneas
+  // vectoriales en monitores de alta densidad (checklist de performance,
+  // regla 18). Se agranda el backing store por el DPR una sola vez al crear
+  // el motor y se escala el contexto para que el resto del código siga
+  // dibujando en las coordenadas lógicas 800x600 sin cambios.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  if (dpr !== 1) {
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
   const keys: Record<string, boolean> = {};
   const justPressed: Record<string, boolean> = {};
 
@@ -407,12 +461,23 @@ export function createAsteroidesEngine(
 
   function spawnAsteroids(count: number) {
     const SAFE_DIST = 130;
+    // Límite de intentos explícito (checklist de performance, regla 16): hoy
+    // es inalcanzable por geometría (W×H siempre deja espacio fuera del
+    // círculo central), pero sin este tope el bucle quedaría abierto a
+    // colgarse si esos valores cambiaran en el futuro.
+    const MAX_ATTEMPTS = 50;
     for (let i = 0; i < count; i++) {
-      let x, y;
+      let x = W / 2;
+      let y = H / 2;
+      let attempts = 0;
       do {
         x = rand(0, W);
         y = rand(0, H);
-      } while (Math.hypot(x - W / 2, y - H / 2) < SAFE_DIST);
+        attempts++;
+      } while (
+        Math.hypot(x - W / 2, y - H / 2) < SAFE_DIST &&
+        attempts < MAX_ATTEMPTS
+      );
       asteroids.push(new Asteroid(x, y, 3));
     }
   }
@@ -463,17 +528,47 @@ export function createAsteroidesEngine(
     }
   }
 
+  // Tamaño de celda de la rejilla de broad-phase para colisiones bala↔asteroide
+  // (checklist de performance, regla 13). Debe ser >= al mayor radio de
+  // colisión posible (asteroide grande 50 + bala 2) para garantizar que un
+  // vecindario de 3x3 celdas alrededor de la bala cubra cualquier asteroide
+  // que pueda estar tocándola, sin perder ningún par que el chequeo
+  // producto-cartesiano original sí habría detectado.
+  const COLLISION_CELL = 128;
+  const asteroidGrid = new Map<string, Asteroid[]>();
+
+  function cellKey(cx: number, cy: number): string {
+    return cx + "," + cy;
+  }
+
+  function rebuildAsteroidGrid() {
+    asteroidGrid.clear();
+    for (const a of asteroids) {
+      if (a.dead) continue;
+      const key = cellKey(
+        Math.floor(a.x / COLLISION_CELL),
+        Math.floor(a.y / COLLISION_CELL),
+      );
+      let bucket = asteroidGrid.get(key);
+      if (!bucket) {
+        bucket = [];
+        asteroidGrid.set(key, bucket);
+      }
+      bucket.push(a);
+    }
+  }
+
   function update(dt: number) {
     if (state === "gameover") {
       particles.forEach((p) => p.update(dt));
-      particles = particles.filter((p) => !p.dead);
+      compact(particles);
       return;
     }
 
     if (state === "dead") {
       deadTimer -= dt;
       particles.forEach((p) => p.update(dt));
-      particles = particles.filter((p) => !p.dead);
+      compact(particles);
       asteroids.forEach((a) => a.update(dt));
       if (deadTimer <= 0) {
         state = "playing";
@@ -484,7 +579,7 @@ export function createAsteroidesEngine(
 
     // Disparar
     if (pressed("Space")) {
-      bullets.push(...ship.tryShoot());
+      for (const bullet of ship.tryShoot()) bullets.push(bullet);
     }
 
     ship.update(dt);
@@ -493,9 +588,9 @@ export function createAsteroidesEngine(
     particles.forEach((p) => p.update(dt));
     powerUps.forEach((p) => p.update(dt));
 
-    bullets = bullets.filter((b) => !b.dead);
-    particles = particles.filter((p) => !p.dead);
-    powerUps = powerUps.filter((p) => !p.dead);
+    compact(bullets);
+    compact(particles);
+    compact(powerUps);
 
     for (const p of powerUps) {
       if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
@@ -504,29 +599,41 @@ export function createAsteroidesEngine(
       }
     }
 
-    // Bala vs asteroide
+    // Bala vs asteroide: broad-phase por rejilla en vez de recorrer
+    // bullets × asteroids completo (checklist de performance, regla 13).
     const newAsteroids: Asteroid[] = [];
+    rebuildAsteroidGrid();
     for (const b of bullets) {
-      for (const a of asteroids) {
-        if (!a.dead && !b.dead && dist(b, a) < a.radius) {
-          b.dead = true;
-          a.dead = true;
-          score += POINTS[a.size];
-          explode(a.x, a.y, a.size * 5);
-          newAsteroids.push(...a.split());
-          if (!powerUpSpawned) {
-            killsSinceSpawn++;
-            const guaranteed = killsSinceSpawn >= 5;
-            if (guaranteed || Math.random() < POWERUP_DROP_CHANCE) {
-              powerUps.push(new PowerUp(a.x, a.y));
-              powerUpSpawned = true;
+      if (b.dead) continue;
+      const cx = Math.floor(b.x / COLLISION_CELL);
+      const cy = Math.floor(b.y / COLLISION_CELL);
+      for (let dx = -1; dx <= 1 && !b.dead; dx++) {
+        for (let dy = -1; dy <= 1 && !b.dead; dy++) {
+          const bucket = asteroidGrid.get(cellKey(cx + dx, cy + dy));
+          if (!bucket) continue;
+          for (const a of bucket) {
+            if (!a.dead && !b.dead && dist(b, a) < a.radius) {
+              b.dead = true;
+              a.dead = true;
+              score += POINTS[a.size];
+              explode(a.x, a.y, a.size * 5);
+              for (const child of a.split()) newAsteroids.push(child);
+              if (!powerUpSpawned) {
+                killsSinceSpawn++;
+                const guaranteed = killsSinceSpawn >= 5;
+                if (guaranteed || Math.random() < POWERUP_DROP_CHANCE) {
+                  powerUps.push(new PowerUp(a.x, a.y));
+                  powerUpSpawned = true;
+                }
+              }
             }
           }
         }
       }
     }
-    asteroids = asteroids.filter((a) => !a.dead).concat(newAsteroids);
-    bullets = bullets.filter((b) => !b.dead);
+    compact(asteroids);
+    for (const na of newAsteroids) asteroids.push(na);
+    compact(bullets);
 
     // Nave vs asteroide
     if (ship.invincible <= 0) {
@@ -559,15 +666,30 @@ export function createAsteroidesEngine(
     ctx.restore();
   }
 
+  // Texto de HUD cacheado: drawHUD() corre cada frame (~160fps en este
+  // entorno) pero score/level solo cambian por evento — recalcular el
+  // template literal en cada frame era costo innecesario (checklist de
+  // performance, regla 8). Se recomputa únicamente cuando el valor cambia.
+  const hudScoreCache = { value: NaN, text: "" };
+  const hudLevelCache = { value: NaN, text: "" };
+
   function drawHUD() {
     ctx.fillStyle = palette.hud;
     ctx.font = "15px monospace";
 
     ctx.textAlign = "left";
-    ctx.fillText(`SCORE  ${score}`, 14, 26);
+    if (hudScoreCache.value !== score) {
+      hudScoreCache.value = score;
+      hudScoreCache.text = `SCORE  ${score}`;
+    }
+    ctx.fillText(hudScoreCache.text, 14, 26);
 
     ctx.textAlign = "center";
-    ctx.fillText(`NIVEL ${level}`, W / 2, 26);
+    if (hudLevelCache.value !== level) {
+      hudLevelCache.value = level;
+      hudLevelCache.text = `NIVEL ${level}`;
+    }
+    ctx.fillText(hudLevelCache.text, W / 2, 26);
 
     for (let i = 0; i < lives; i++) drawLifeIcon(W - 16 - i * 22, 18);
 
@@ -607,6 +729,18 @@ export function createAsteroidesEngine(
   let lastTime: number | null = null;
   let running = false;
   let gameOverEmitted = false;
+  // Distingue una detención automática (game over ya con las partículas de
+  // explosión apagadas, o pestaña oculta) de una pausa/reanudación explícita
+  // pedida por game-player.tsx — solo la primera se auto-reanuda sola.
+  let pausedByVisibility = false;
+
+  function stopLoop() {
+    running = false;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
 
   function loop(ts: number) {
     if (!running) return;
@@ -619,29 +753,54 @@ export function createAsteroidesEngine(
       callbacks.onGameOver(score);
     }
     draw();
+    // El estado "gameover" es terminal: una vez que las últimas partículas de
+    // la explosión se apagaron no hay nada más que animar, así que el loop se
+    // detiene en vez de seguir corriendo rAF (y por lo tanto draw()) para
+    // siempre en la pantalla de fin de partida (checklist de performance,
+    // regla 5). La pantalla queda estática con el último frame dibujado.
+    if (state === "gameover" && particles.length === 0) {
+      stopLoop();
+      return;
+    }
     rafId = requestAnimationFrame(loop);
   }
 
+  const onVisibilityChange = () => {
+    if (typeof document === "undefined") return;
+    if (document.hidden) {
+      if (running) {
+        pausedByVisibility = true;
+        stopLoop();
+      }
+    } else if (pausedByVisibility) {
+      pausedByVisibility = false;
+      running = true;
+      lastTime = null;
+      rafId = requestAnimationFrame(loop);
+    }
+  };
+
   function start() {
+    if (running) return;
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     gameOverEmitted = false;
+    pausedByVisibility = false;
     running = true;
     lastTime = null;
     rafId = requestAnimationFrame(loop);
   }
 
   function pause() {
-    running = false;
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
+    pausedByVisibility = false;
+    stopLoop();
   }
 
   function resume() {
     if (running) return;
+    pausedByVisibility = false;
     running = true;
     lastTime = null;
     rafId = requestAnimationFrame(loop);
@@ -650,6 +809,7 @@ export function createAsteroidesEngine(
   function restart() {
     initGame();
     gameOverEmitted = false;
+    pausedByVisibility = false;
     resume();
   }
 
@@ -657,6 +817,7 @@ export function createAsteroidesEngine(
     pause();
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   function setPalette(next: GamePalette) {

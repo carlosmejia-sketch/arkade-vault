@@ -52,6 +52,21 @@ export function createSnakeEngine(
   const ctx = canvas.getContext("2d")!;
   let palette = initialPalette;
 
+  // El canvas se escala por CSS al tamaño del contenedor `.crt-screen`
+  // (comparte la clase `.asteroides-canvas`, `width:100%; height:100%`); sin
+  // ajustar por devicePixelRatio, el backing store queda fijo en 800x600 y el
+  // navegador reescala esos píxeles al tamaño real de pantalla, difuminando
+  // los bordes de las celdas en monitores de alta densidad (checklist de
+  // performance, regla 18). Se agranda el backing store por el DPR una sola
+  // vez al crear el motor y se escala el contexto para que el resto del
+  // código siga dibujando en las coordenadas lógicas 800x600 sin cambios.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  if (dpr !== 1) {
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
   const fruitSheet = new Image();
   fruitSheet.src = FRUIT_SHEET_SRC;
 
@@ -88,12 +103,25 @@ export function createSnakeEngine(
 
   function randomFreeCell(): Cell {
     const occupied = new Set(snake.map((s) => `${s.x},${s.y}`));
-    let x: number, y: number;
-    do {
-      x = Math.floor(Math.random() * COLS);
-      y = Math.floor(Math.random() * ROWS);
-    } while (occupied.has(`${x},${y}`));
-    return { x, y };
+    // Límite de intentos explícito (checklist de performance, regla 16): el
+    // bucle de rechazo original no tenía cota y podía girar indefinidamente
+    // si la serpiente llegara a ocupar casi toda la grilla. Bajo juego normal
+    // se resuelve en el primer o segundo intento, igual que antes.
+    const MAX_ATTEMPTS = COLS * ROWS;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const x = Math.floor(Math.random() * COLS);
+      const y = Math.floor(Math.random() * ROWS);
+      if (!occupied.has(`${x},${y}`)) return { x, y };
+    }
+    // Fallback determinista: solo se alcanza si no quedó ninguna celda libre
+    // al azar tras agotar los intentos (serpiente ocupando casi toda la
+    // grilla).
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!occupied.has(`${x},${y}`)) return { x, y };
+      }
+    }
+    return { x: 0, y: 0 };
   }
 
   function spawnFruit() {
@@ -213,13 +241,29 @@ export function createSnakeEngine(
     });
   }
 
+  // Cache de texto de HUD (checklist de performance, regla 8): evita construir
+  // un template literal nuevo en cada tick solo para pintar el mismo texto
+  // cuando el puntaje/nivel no cambiaron entre un draw() y el siguiente.
+  let hudScoreValue = -1;
+  let hudScoreText = "";
+  let hudLevelValue = -1;
+  let hudLevelText = "";
+
   function drawHUD() {
     ctx.fillStyle = palette.hud;
     ctx.font = "15px monospace";
+    if (score !== hudScoreValue) {
+      hudScoreValue = score;
+      hudScoreText = `SCORE  ${score}`;
+    }
     ctx.textAlign = "left";
-    ctx.fillText(`SCORE  ${score}`, 14, 22);
+    ctx.fillText(hudScoreText, 14, 22);
+    if (level !== hudLevelValue) {
+      hudLevelValue = level;
+      hudLevelText = `NIVEL ${level}`;
+    }
     ctx.textAlign = "center";
-    ctx.fillText(`NIVEL ${level}`, W / 2, 22);
+    ctx.fillText(hudLevelText, W / 2, 22);
   }
 
   function drawOverlay(title: string, sub: string) {
@@ -246,6 +290,18 @@ export function createSnakeEngine(
   let timerId: ReturnType<typeof setInterval> | null = null;
   let running = false;
   let gameOverEmitted = false;
+  // Distingue una detención automática (game over, o pestaña oculta) de una
+  // pausa/reanudación explícita pedida por game-player.tsx — solo la primera
+  // se auto-reanuda sola (checklist de performance, regla 5).
+  let pausedByVisibility = false;
+
+  function stopTimer() {
+    running = false;
+    if (timerId !== null) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
 
   function tick() {
     if (!running) return;
@@ -256,6 +312,13 @@ export function createSnakeEngine(
       callbacks.onGameOver(score);
     }
     draw();
+    // El estado "gameover" es terminal: no hay nada más que animar, así que
+    // el timer se detiene en vez de seguir llamando a step()/draw() para
+    // siempre sobre la pantalla de fin de partida (checklist de performance,
+    // regla 5). La pantalla queda estática con el último frame dibujado.
+    if (state === "gameover") {
+      stopTimer();
+    }
   }
 
   function scheduleTimer() {
@@ -263,25 +326,43 @@ export function createSnakeEngine(
     timerId = setInterval(tick, tickMs);
   }
 
+  const onVisibilityChange = () => {
+    if (typeof document === "undefined") return;
+    if (document.hidden) {
+      if (running) {
+        pausedByVisibility = true;
+        stopTimer();
+      }
+    } else if (pausedByVisibility) {
+      pausedByVisibility = false;
+      running = true;
+      scheduleTimer();
+    }
+  };
+
   function start() {
+    // Idempotente (checklist de performance, regla 3): evita listeners
+    // duplicados y un timer huérfano si se llamara dos veces sin destroy()
+    // intermedio.
+    if (running) return;
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     gameOverEmitted = false;
+    pausedByVisibility = false;
     running = true;
     scheduleTimer();
     draw();
   }
 
   function pause() {
-    running = false;
-    if (timerId !== null) {
-      clearInterval(timerId);
-      timerId = null;
-    }
+    pausedByVisibility = false;
+    stopTimer();
   }
 
   function resume() {
     if (running) return;
+    pausedByVisibility = false;
     running = true;
     scheduleTimer();
   }
@@ -289,6 +370,7 @@ export function createSnakeEngine(
   function restart() {
     initGame();
     gameOverEmitted = false;
+    pausedByVisibility = false;
     running = true;
     scheduleTimer();
     draw();
@@ -297,6 +379,7 @@ export function createSnakeEngine(
   function destroy() {
     pause();
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   function setPalette(next: GamePalette) {
