@@ -1126,6 +1126,7 @@ a {
   width: auto;
   transform: translateX(-50%);
   display: block;
+  image-rendering: pixelated;
 }
 
 /* motor real: canvas fijo 640x560 — se ajusta al alto del CRT (aspect-ratio
@@ -1138,6 +1139,7 @@ a {
   width: auto;
   transform: translateX(-50%);
   display: block;
+  image-rendering: pixelated;
 }
 
 /* fake in-screen game */

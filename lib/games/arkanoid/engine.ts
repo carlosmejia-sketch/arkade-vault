@@ -98,8 +98,28 @@ export function createArkanoidEngine(
   const ctx = canvas.getContext("2d")!;
   let palette = initialPalette;
 
-  // Cachea el sprite tintado por (elemento, color) para no recrear el canvas
-  // offscreen en cada frame (hasta ~60 bloques vivos en el nivel 1).
+  // El canvas se escala por CSS al tamaño del contenedor `.crt-screen`
+  // (clase `.asteroides-canvas`, compartida con Asteroides — ver
+  // `components/game-player.tsx`); sin ajustar por devicePixelRatio, el
+  // backing store queda fijo en 800x600 y el navegador reescala esos
+  // píxeles al tamaño real de pantalla, difuminando sprites en monitores de
+  // alta densidad (checklist de performance, regla 18). Se agranda el
+  // backing store por el DPR una sola vez al crear el motor y se escala el
+  // contexto para que el resto del código siga dibujando en las coordenadas
+  // lógicas 800x600 sin cambios. Contenido en este archivo, sin tocar
+  // app/globals.css (esa clase también la usa Asteroides).
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  if (dpr !== 1) {
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
+  // Cachea el sprite tintado por (elemento, color, tamaño) para no recrear
+  // el canvas offscreen en cada frame (hasta ~60 bloques vivos en el nivel
+  // 1). La clave incluye w/h (checklist de performance, regla 12): hoy
+  // paddle/pelota nunca cambian de tamaño en runtime, pero una clave que
+  // ignore las dimensiones invalidaría mal el cache si eso cambiara.
   const tintCache = new Map<string, HTMLCanvasElement>();
 
   function getTinted(
@@ -129,8 +149,12 @@ export function createArkanoidEngine(
       drawPaddleSprite(ctx, x, y, w, h);
       return;
     }
-    const canvas = getTinted("paddle", w, h, palette.entidadPrincipal, (octx) =>
-      drawPaddleSprite(octx, 0, 0, w, h),
+    const canvas = getTinted(
+      `paddle:${w}x${h}`,
+      w,
+      h,
+      palette.entidadPrincipal,
+      (octx) => drawPaddleSprite(octx, 0, 0, w, h),
     );
     ctx.drawImage(canvas, x, y);
   }
@@ -140,8 +164,12 @@ export function createArkanoidEngine(
       drawBallSprite(ctx, x, y, w, h);
       return;
     }
-    const canvas = getTinted("ball", w, h, palette.entidadSecundaria, (octx) =>
-      drawBallSprite(octx, 0, 0, w, h),
+    const canvas = getTinted(
+      `ball:${w}x${h}`,
+      w,
+      h,
+      palette.entidadSecundaria,
+      (octx) => drawBallSprite(octx, 0, 0, w, h),
     );
     ctx.drawImage(canvas, x, y);
   }
@@ -184,12 +212,32 @@ export function createArkanoidEngine(
     ctx.drawImage(canvas, x, y);
   }
 
-  const bounceSound = new Audio("/arkanoid/sounds/ball-bounce.mp3");
-  const breakSound = new Audio("/arkanoid/sounds/break-sound.mp3");
+  // Pool fijo de instancias por sonido (en vez de `cloneNode` por evento,
+  // checklist de performance regla 10): se crean una sola vez al construir
+  // el motor y se recorren en round-robin, preservando sonidos superpuestos
+  // (varios rebotes rápidos no se cortan entre sí) sin crear un nodo DOM
+  // nuevo por rebote/rotura.
+  const AUDIO_POOL_SIZE = 4;
+  function createAudioPool(src: string): HTMLAudioElement[] {
+    return Array.from({ length: AUDIO_POOL_SIZE }, () => new Audio(src));
+  }
+  const bouncePool = createAudioPool("/arkanoid/sounds/ball-bounce.mp3");
+  const breakPool = createAudioPool("/arkanoid/sounds/break-sound.mp3");
+  const bounceRef = { i: 0 };
+  const breakRef = { i: 0 };
 
-  function playSound(audio: HTMLAudioElement) {
-    const clone = audio.cloneNode(true) as HTMLAudioElement;
-    clone.play().catch(() => {});
+  function playFromPool(pool: HTMLAudioElement[], idxRef: { i: number }) {
+    const audio = pool[idxRef.i];
+    idxRef.i = (idxRef.i + 1) % pool.length;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  function playBounce() {
+    playFromPool(bouncePool, bounceRef);
+  }
+  function playBreak() {
+    playFromPool(breakPool, breakRef);
   }
 
   const paddle: Paddle = { x: 0, y: 560, w: 81, h: 14 };
@@ -203,6 +251,7 @@ export function createArkanoidEngine(
   };
 
   let blocks: Block[] = [];
+  let aliveBlocks = 0;
   let explosions: Explosion[] = [];
   let lives = 3;
   let score = 0;
@@ -213,6 +262,30 @@ export function createArkanoidEngine(
   let lastScore = -1;
   let lastLives = -1;
   let lastLevel = -1;
+
+  // Cache de las cadenas del HUD (checklist de performance regla 8): evita
+  // el template literal `Score: ${score}` / `Nivel: ${currentLevel}` en cada
+  // frame de draw() — solo se recalculan cuando el valor subyacente cambia.
+  let hudScoreCache = "";
+  let hudScoreCacheValue = -1;
+  let hudLevelCache = "";
+  let hudLevelCacheValue = -1;
+
+  function hudScoreText(): string {
+    if (score !== hudScoreCacheValue) {
+      hudScoreCacheValue = score;
+      hudScoreCache = `Score: ${score}`;
+    }
+    return hudScoreCache;
+  }
+
+  function hudLevelText(): string {
+    if (currentLevel !== hudLevelCacheValue) {
+      hudLevelCacheValue = currentLevel;
+      hudLevelCache = `Nivel: ${currentLevel}`;
+    }
+    return hudLevelCache;
+  }
 
   const keys: Record<string, boolean> = { ArrowLeft: false, ArrowRight: false };
 
@@ -254,6 +327,7 @@ export function createArkanoidEngine(
       color: b.color,
       alive: true,
     }));
+    aliveBlocks = blocks.length;
     explosions = [];
     ball.x = paddle.x + (paddle.w - ball.w) / 2;
     ball.y = paddle.y - ball.h;
@@ -332,17 +406,17 @@ export function createArkanoidEngine(
     if (ball.x <= 0) {
       ball.x = 0;
       ball.vx = Math.abs(ball.vx);
-      playSound(bounceSound);
+      playBounce();
     }
     if (ball.x + ball.w >= W) {
       ball.x = W - ball.w;
       ball.vx = -Math.abs(ball.vx);
-      playSound(bounceSound);
+      playBounce();
     }
     if (ball.y <= 0) {
       ball.y = 0;
       ball.vy = Math.abs(ball.vy);
-      playSound(bounceSound);
+      playBounce();
     }
 
     if (
@@ -354,13 +428,14 @@ export function createArkanoidEngine(
     ) {
       ball.y = paddle.y - ball.h;
       ball.vy = -Math.abs(ball.vy);
-      playSound(bounceSound);
+      playBounce();
     }
 
     for (const block of blocks) {
       if (!block.alive) continue;
       if (collideAABB(block)) {
         block.alive = false;
+        aliveBlocks--;
         explosions.push({
           x: block.x,
           y: block.y,
@@ -371,8 +446,11 @@ export function createArkanoidEngine(
         });
         score += 10;
         ball.vy = -ball.vy;
-        playSound(breakSound);
-        if (blocks.every((b) => !b.alive)) {
+        playBreak();
+        // Contador decrementado en vez de `blocks.every()` dentro de este
+        // `for` (checklist de performance regla 14): evita un recorrido O(n)
+        // extra sobre `blocks` cada vez que se destruye un bloque.
+        if (aliveBlocks <= 0) {
           if (currentLevel < 5) loadLevel(currentLevel + 1);
           else state = "win";
         }
@@ -380,8 +458,18 @@ export function createArkanoidEngine(
       }
     }
 
-    for (const exp of explosions) exp.elapsed += dt * 1000;
-    explosions = explosions.filter((exp) => exp.elapsed < EXPLOSION_DURATION);
+    // Compactación in-place en vez de `.filter()` por frame (checklist de
+    // performance regla 7): evita crear un arreglo nuevo cada frame incluso
+    // cuando no hay explosiones que remover.
+    let writeIdx = 0;
+    for (let i = 0; i < explosions.length; i++) {
+      const exp = explosions[i];
+      exp.elapsed += dt * 1000;
+      if (exp.elapsed < EXPLOSION_DURATION) {
+        explosions[writeIdx++] = exp;
+      }
+    }
+    explosions.length = writeIdx;
 
     if (ball.y > H) {
       lives--;
@@ -461,9 +549,9 @@ export function createArkanoidEngine(
       ctx.font = "bold 18px monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(`Score: ${score}`, 10, 10);
+      ctx.fillText(hudScoreText(), 10, 10);
       ctx.textAlign = "center";
-      ctx.fillText(`Nivel: ${currentLevel}`, W / 2, 10);
+      ctx.fillText(hudLevelText(), W / 2, 10);
       const ballSize = 16;
       const ballSpacing = 4;
       for (let i = 0; i < lives; i++) {
@@ -481,6 +569,25 @@ export function createArkanoidEngine(
   let lastTime: number | null = null;
   let running = false;
   let gameOverEmitted = false;
+  let destroyed = false;
+  // El spritesheet carga de forma asíncrona: hasta que resuelve, `running`
+  // ya es `true` (para que start() sea idempotente) pero el loop real
+  // todavía no arrancó. Sin esta bandera, ocultar la pestaña durante la
+  // carga inicial podría disparar un `requestAnimationFrame(loop)` desde
+  // `onVisibilityChange` antes de que `initGame()` haya corrido.
+  let assetsReady = false;
+  // Distingue una detención automática (pestaña oculta) de una pausa
+  // explícita pedida por game-player.tsx — solo la primera se auto-reanuda
+  // sola al volver a la pestaña.
+  let pausedByVisibility = false;
+
+  function stopLoop() {
+    running = false;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
 
   function loop(ts: number) {
     if (!running) return;
@@ -494,38 +601,80 @@ export function createArkanoidEngine(
       callbacks.onGameOver(score);
     }
     draw();
+    // "gameover"/"win" son estados terminales: no hay nada más que animar,
+    // así que el loop se detiene en vez de seguir reprogramando rAF (y por
+    // lo tanto draw()) indefinidamente sobre la pantalla de fin de partida
+    // (checklist de performance, regla 5). La pantalla queda estática con el
+    // último frame ya dibujado (overlay incluido).
+    if (state === "gameover" || state === "win") {
+      stopLoop();
+      return;
+    }
     rafId = requestAnimationFrame(loop);
   }
 
+  const onVisibilityChange = () => {
+    if (typeof document === "undefined") return;
+    if (document.hidden) {
+      if (running) {
+        pausedByVisibility = true;
+        stopLoop();
+      }
+    } else if (pausedByVisibility) {
+      pausedByVisibility = false;
+      if (assetsReady && !paused && state === "playing") {
+        running = true;
+        lastTime = null;
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  };
+
   function start() {
+    if (running) return;
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     canvas.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("click", onClick);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     gameOverEmitted = false;
+    pausedByVisibility = false;
     running = true;
     lastTime = null;
 
+    // El spritesheet se carga de forma asíncrona (loadSpritesheet); si
+    // destroy() se llama antes de que resuelva (ej. el jugador navega a
+    // SALIR durante la carga inicial), este callback no debe arrancar
+    // initGame()/rAF sobre un motor ya desmontado (checklist de
+    // performance, regla 4).
     loadSpritesheet(() => {
+      if (destroyed) return;
+      assetsReady = true;
       initGame();
+      // Si la pestaña ya está oculta cuando el spritesheet termina de
+      // cargar, no arrancar el loop: `onVisibilityChange` lo hará al volver
+      // a la pestaña (mismo criterio que una pausa por visibilidad normal).
+      if (typeof document !== "undefined" && document.hidden) {
+        running = false;
+        pausedByVisibility = true;
+        return;
+      }
       rafId = requestAnimationFrame(loop);
     });
   }
 
   function pause() {
     paused = true;
-    running = false;
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
+    pausedByVisibility = false;
+    stopLoop();
     draw();
   }
 
   function resume() {
     if (running) return;
     paused = false;
+    pausedByVisibility = false;
     running = true;
     lastTime = null;
     rafId = requestAnimationFrame(loop);
@@ -538,15 +687,13 @@ export function createArkanoidEngine(
   }
 
   function destroy() {
-    running = false;
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
+    destroyed = true;
+    stopLoop();
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
     canvas.removeEventListener("mousemove", onMouseMove);
     canvas.removeEventListener("click", onClick);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   function setPalette(next: GamePalette) {

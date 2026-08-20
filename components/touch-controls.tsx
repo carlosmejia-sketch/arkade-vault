@@ -1,19 +1,33 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { TouchControlConfig } from "@/lib/games/touch-config";
 
 const REPEAT_MS = 120;
 
-export default function TouchControls({
-  config,
-}: {
-  config: TouchControlConfig;
-}) {
+// Memoizado: game-player.tsx re-renderiza en cada cambio de score/lives/level
+// (uno por evento de juego, no por frame, pero frecuente en juegos como
+// Asteroides). `config` es la misma referencia estable de TOUCH_CONFIG por
+// juego, así que sin memo este árbol de botones se reconciliaba de nuevo en
+// cada uno de esos renders sin ninguna prop distinta (checklist de
+// performance, regla 20).
+function TouchControls({ config }: { config: TouchControlConfig }) {
   const intervalRef = useRef<Map<string, ReturnType<typeof setInterval>>>(
     new Map(),
   );
+
+  // Limpia cualquier timer de auto-repeat que haya quedado activo si el
+  // componente se desmonta con un botón presionado (ej. el jugador pulsa
+  // SALIR/FIN sin soltar el dpad) — evita que el setInterval siga disparando
+  // `dispatchEvent` indefinidamente (checklist de performance, regla 21).
+  useEffect(() => {
+    const intervals = intervalRef.current;
+    return () => {
+      intervals.forEach((id) => clearInterval(id));
+      intervals.clear();
+    };
+  }, []);
 
   const dispatch = (code: string, type: "keydown" | "keyup") => {
     // Arkanoid lee e.key en vez de e.code; los demás motores leen e.code.
@@ -137,3 +151,5 @@ export default function TouchControls({
     </div>
   );
 }
+
+export default memo(TouchControls);

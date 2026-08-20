@@ -89,6 +89,43 @@ export function createFroggerEngine(
   const ctx = canvas.getContext("2d")!;
   let palette = initialPalette;
 
+  // Sin ajustar por devicePixelRatio el backing store queda fijo en 640x560 y
+  // el navegador reescala esos píxeles al tamaño real de pantalla, difuminando
+  // los bordes de las celdas en monitores de alta densidad (checklist de
+  // performance, regla 18). Se agranda el backing store por el DPR una sola
+  // vez al crear el motor y se escala el contexto para que el resto del
+  // código siga dibujando en las coordenadas lógicas 640x560 sin cambios.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  if (dpr !== 1) {
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
+  // Las 14 filas de fondo y las 5 casillas meta son geometría estática que no
+  // cambia entre frames (solo depende de la paleta activa) — se dibujan una
+  // sola vez en un canvas offscreen en vez de recorrerlas en cada draw()
+  // (checklist de performance, regla 11). Solo el marcador de "ocupada" de
+  // cada meta cambia por frame y se sigue dibujando aparte.
+  const backgroundCache = document.createElement("canvas");
+  backgroundCache.width = W;
+  backgroundCache.height = H;
+  const bgCtx = backgroundCache.getContext("2d")!;
+
+  function buildBackgroundCache() {
+    for (let row = 0; row < ROWS; row++) {
+      bgCtx.fillStyle = zoneColor(row);
+      bgCtx.fillRect(0, row * CELL, W, CELL);
+    }
+    GOAL_COLS.forEach((startCol) => {
+      bgCtx.fillStyle = palette.casillaMetaFondo!;
+      bgCtx.fillRect(startCol * CELL, 0, GOAL_WIDTH * CELL, CELL);
+      bgCtx.strokeStyle = palette.casillaMetaBorde!;
+      bgCtx.lineWidth = 2;
+      bgCtx.strokeRect(startCol * CELL + 1, 1, GOAL_WIDTH * CELL - 2, CELL - 2);
+    });
+  }
+
   let lanes: Lane[];
   let frog: Frog;
   let pendingDir: Direction | null;
@@ -445,30 +482,13 @@ export function createFroggerEngine(
   }
 
   function drawBackground() {
-    for (let row = 0; row < ROWS; row++) {
-      ctx.fillStyle = zoneColor(row);
-      ctx.fillRect(0, row * CELL, W, CELL);
-    }
+    ctx.drawImage(backgroundCache, 0, 0);
     GOAL_COLS.forEach((startCol, i) => {
-      ctx.fillStyle = palette.casillaMetaFondo!;
-      ctx.fillRect(startCol * CELL, 0, GOAL_WIDTH * CELL, CELL);
-      ctx.strokeStyle = palette.casillaMetaBorde!;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(startCol * CELL + 1, 1, GOAL_WIDTH * CELL - 2, CELL - 2);
-      if (goalsOccupied[i]) {
-        ctx.fillStyle = palette.acento;
-        ctx.beginPath();
-        ctx.ellipse(
-          startCol * CELL + CELL,
-          CELL / 2,
-          14,
-          12,
-          0,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-      }
+      if (!goalsOccupied[i]) return;
+      ctx.fillStyle = palette.acento;
+      ctx.beginPath();
+      ctx.ellipse(startCol * CELL + CELL, CELL / 2, 14, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
     });
   }
 
@@ -504,6 +524,10 @@ export function createFroggerEngine(
           }
         } else if (entity.type === "turtle") {
           const cells = Math.round(entity.width);
+          // save()/restore() en vez de fijar globalAlpha=1 a mano al final:
+          // así también queda restaurado si algo lanza una excepción a mitad
+          // del dibujo (checklist de performance, regla 17).
+          ctx.save();
           for (let i = 0; i < cells; i++) {
             const cx = x + i * CELL + CELL / 2;
             const cy = y + CELL / 2;
@@ -512,8 +536,8 @@ export function createFroggerEngine(
             ctx.beginPath();
             ctx.arc(cx, cy, 14, 0, Math.PI * 2);
             ctx.fill();
-            ctx.globalAlpha = 1;
           }
+          ctx.restore();
         }
       }
     }
@@ -548,15 +572,36 @@ export function createFroggerEngine(
     ctx.fill();
   }
 
+  // Los tres textos del HUD (score/nivel/vidas) se recomputan con un template
+  // literal / String.repeat en cada frame aunque el valor no haya cambiado
+  // entre un frame y el siguiente — costo innecesario por frame (checklist de
+  // performance, regla 8). Se cachea el texto y solo se recalcula cuando el
+  // valor de origen cambia.
+  const hudScoreCache = { value: NaN, text: "" };
+  const hudLevelCache = { value: NaN, text: "" };
+  const hudLivesCache = { value: NaN, text: "" };
+
   function drawHUD() {
     ctx.fillStyle = palette.hud;
     ctx.font = "16px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(`SCORE ${score}`, 8, 18);
+    if (hudScoreCache.value !== score) {
+      hudScoreCache.value = score;
+      hudScoreCache.text = `SCORE ${score}`;
+    }
+    ctx.fillText(hudScoreCache.text, 8, 18);
     ctx.textAlign = "center";
-    ctx.fillText(`NIVEL ${level}`, W / 2, 18);
+    if (hudLevelCache.value !== level) {
+      hudLevelCache.value = level;
+      hudLevelCache.text = `NIVEL ${level}`;
+    }
+    ctx.fillText(hudLevelCache.text, W / 2, 18);
     ctx.textAlign = "right";
-    ctx.fillText("♥".repeat(lives), W - 8, 18);
+    if (hudLivesCache.value !== lives) {
+      hudLivesCache.value = lives;
+      hudLivesCache.text = "♥".repeat(lives);
+    }
+    ctx.fillText(hudLivesCache.text, W - 8, 18);
 
     const total = timeForLevel(level);
     const ratio = Math.max(0, Math.min(1, roundTimer / total));
@@ -591,6 +636,7 @@ export function createFroggerEngine(
   let lastTime: number | null = null;
   let running = false;
   let gameOverEmitted = false;
+  let wasRunningBeforeHidden = false;
 
   function loop(ts: number) {
     if (!running) return;
@@ -603,13 +649,39 @@ export function createFroggerEngine(
       callbacks.onGameOver(score);
     }
     draw();
+
+    // El loop se detiene tras dibujar el frame final de game over en vez de
+    // seguir reprogramando rAF indefinidamente mientras el jugador deja la
+    // pantalla de game over abierta (checklist de performance, regla 5).
+    if (state === "gameover") {
+      running = false;
+      rafId = null;
+      return;
+    }
     rafId = requestAnimationFrame(loop);
   }
 
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      if (running) {
+        wasRunningBeforeHidden = true;
+        pause();
+      }
+    } else if (wasRunningBeforeHidden) {
+      wasRunningBeforeHidden = false;
+      resume();
+    }
+  };
+
   function start() {
+    // Idempotente: evita listeners duplicados y un rAF huérfano si se llama
+    // dos veces sin destroy() intermedio (checklist de performance, regla 3).
+    if (running) return;
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     gameOverEmitted = false;
+    wasRunningBeforeHidden = false;
     running = true;
     lastTime = null;
     rafId = requestAnimationFrame(loop);
@@ -639,11 +711,15 @@ export function createFroggerEngine(
   function destroy() {
     pause();
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   function setPalette(next: GamePalette) {
     palette = next;
+    buildBackgroundCache();
   }
+
+  buildBackgroundCache();
 
   return { start, pause, resume, restart, destroy, setPalette };
 }
