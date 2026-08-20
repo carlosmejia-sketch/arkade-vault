@@ -12,10 +12,10 @@ Este archivo brinda orientación a Claude Code (claude.ai/code) al trabajar con 
 
 Arcade Vault — plataforma para jugar online y competir por puntaje (ver `README.md`).
 
-Estado actual: MVP funcional con 4 juegos reales y persistencia de puntajes en Supabase.
+Estado actual: MVP funcional con 5 juegos reales y persistencia de puntajes en Supabase.
 
 - **Rutas** (`app/`): `/` (`components/home.tsx`, landing), `/biblioteca` (`components/library.tsx`, catálogo con búsqueda), `/juegos/[id]` (detalle, server component, top 10 del leaderboard), `/juegos/[id]/jugar` (`components/game-player.tsx`, reproductor), `/acceso` (`components/auth-form.tsx`), `/salon` (`components/hall-of-fame.tsx`), `/acerca-de` (`components/about.tsx`). API routes: `app/api/contacto/route.ts` (envío de email vía Resend) y `app/api/health/supabase/route.ts` (health check de conexión).
-- **Juegos** (`lib/games.ts`): exactamente 4, todos con motor real y leaderboard real — `asteroides`, `tetris`, `arkanoid`, `snake`. Los juegos mock originales fueron eliminados (spec 10). `Game.engine` es un `string` obligatorio.
+- **Juegos** (`lib/games.ts`): 5, todos con motor real y leaderboard real — `asteroides`, `tetris`, `arkanoid`, `snake`, `frogger`. Los juegos mock originales fueron eliminados (spec 10). `Game.engine` es un `string` obligatorio.
 - **Auth**: no es real todavía. `lib/session.tsx` maneja sesión mock vía `localStorage` (`av_user`, `av_scores`); `auth-form.tsx` acepta cualquier usuario/contraseña. No hay `middleware.ts` ni Supabase Auth real.
 - **Pruebas**: no hay runner configurado (`package.json` solo tiene `dev`, `build`, `start`, `lint`). Si se agregan pruebas, documentar el script aquí.
 
@@ -31,10 +31,21 @@ Estado actual: MVP funcional con 4 juegos reales y persistencia de puntajes en S
 
 - Usa siempre `/frontend-design` para diseñar la interfaz de usuario.
 - **`/spec` y `/spec-impl`** (`Klerith/fernando-skills`) **sí están instaladas** (`skills-lock.json`, `.claude/skills/spec/`, `.claude/skills/spec-impl/`, espejadas en `.agents/skills/`). Es el flujo vigente: cada feature se documenta primero en `specs/NN-nombre.md` (config en `specs/.spec-config.yml`, `AutoCreateBranch: true`) y luego se implementa con `/spec-impl`.
-- **`spec-juego`** (`.claude/skills/spec-juego/`): skill propia del proyecto para agregar un juego nuevo con motor real. `references/mapa-integracion.md` documenta los 7 puntos de integración obligatorios (`lib/games.ts`, clases `.cover-*` en `app/globals.css`, `lib/games/<slug>/engine.ts`, `components/game-player.tsx`, `app/juegos/[id]/page.tsx`, `components/hall-of-fame.tsx`, el spec mismo) y qué reutilizar sin tocar (`lib/scores.ts`, clientes Supabase, tabla `scores`, `leaderboard.tsx`, `lib/session.tsx`). `references/plantilla-spec-juego.md` es la plantilla de spec para un juego nuevo. Usar esta skill (no `/spec` genérico) al planear un juego nuevo.
-- **Agente `game-planner`** (`.claude/agents/game-planner.md`): decide _qué_ juego agregar al catálogo. Lee `lib/games.ts`, `specs/` y `references/implemented-games.md`, propone candidatos con justificación de encaje y mantiene memoria en `references/game-suggestions-todo.md`. No escribe specs ni código — su salida alimenta a `spec-juego`.
-- **Agente `mobile-porter`** (`.claude/agents/mobile-porter.md`): porta a móvil un juego o pantalla por vez, aplicando el patrón de SPEC 14 (controles táctiles) y SPEC 15 (responsivo 360–428px) por análisis estático de CSS/JSX (sin Playwright). Escribe el spec en `specs/` y mantiene el registro en `references/mobile-ported.md`. No escribe código.
-- **Agente `game-performance-booster`** (`.claude/agents/game-performance-booster.md`): audita y corrige el performance de un juego por vez contra el checklist derivado de SPEC 18 (`specs/18-performance-motores.md`) — allocaciones por frame, clamp de `dt`, idempotencia de `start()`, colisiones O(n²), cache de geometría estática, fugas de timers/listeners. Escribe el spec en `specs/`, aplica los fixes confirmados en `lib/games/<id>/engine.ts` (y `game-player.tsx`/`touch-controls.tsx` solo si la causa es compartida), verifica con `tsc`/`lint`/`build` y mantiene el registro en `references/performance-audited.md`. Va al final del pipeline: `game-planner → spec-juego → /spec-impl → mobile-porter → /spec-impl → skin-designer → /spec-impl → game-performance-booster`.
+- **`spec-juego`** (`.claude/skills/spec-juego/`): documenta el spec de un juego nuevo con motor real y leaderboard. Detalle completo (7 puntos de integración obligatorios, qué reutilizar sin tocar, plantilla) en `.claude/skills/spec-juego/references/`. Usar esta skill (no `/spec` genérico) al planear un juego nuevo.
+- **`spec-impl-game`** (`.claude/skills/spec-impl-game/SKILL.md`): encadena en una sola corrida la implementación de un juego nuevo con su spec de skins (`skin-designer`) y su spec móvil (`mobile-porter`), lanzando ambos agentes secuencialmente. Reemplaza los pasos manuales de invocar cada agente por separado tras `/spec-juego`.
+
+**Agentes** (definición completa en `.claude/agents/<nombre>.md`):
+
+| Agente                     | Qué hace                                                                                                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `game-jam`                 | Dado un tema de game jam, propone 3 juegos y escribe sus specs en `specs/game-jam/`; también acepta un juego ya decidido y le escribe el spec directamente. No escribe código.                                    |
+| `game-planner`             | Decide qué juego agregar al catálogo, con justificación de encaje; memoria en `references/game-suggestions-todo.md`. No escribe specs ni código.                                                                  |
+| `mobile-porter`            | Porta a móvil un juego o pantalla por vez (patrón SPEC 14/15); registro en `references/mobile-ported.md`. No escribe código.                                                                                      |
+| `skin-designer`            | Diseña los 3 skins obligatorios (clásico, neón, retro) de un juego por vez; registro en `references/game-with-themes.md`. No escribe código.                                                                      |
+| `game-performance-booster` | Audita y corrige performance de un juego por vez contra el checklist de SPEC 18; único agente de esta lista que sí escribe código (solo cambios de rendimiento). Registro en `references/performance-audited.md`. |
+
+Pipeline completo para un juego nuevo: `game-planner → spec-juego → /spec-impl → mobile-porter → /spec-impl → skin-designer → /spec-impl → game-performance-booster` (o `spec-impl-game` para encadenar las fases de skins + móvil automáticamente).
+
 - Hook `PostToolUse` en `.claude/settings.json` corre `.claude/hooks/format-on-write.js` (Prettier/ESLint) tras cada `Write`/`Edit`.
 
 ## Convenciones vigentes
@@ -50,7 +61,7 @@ Estado actual: MVP funcional con 4 juegos reales y persistencia de puntajes en S
 
 ### Motores de juego (`lib/games/`)
 
-- Registro central en `lib/games/registry.ts`: `ENGINE_REGISTRY` mapea el slug del juego (`asteroides|tetris|arkanoid|snake`) a una `EngineFactory` definida en `lib/games/<slug>/engine.ts`.
+- Registro central en `lib/games/registry.ts`: `ENGINE_REGISTRY` mapea el slug del juego (`asteroides|tetris|arkanoid|snake|frogger`) a una `EngineFactory` definida en `lib/games/<slug>/engine.ts`.
 - Tipos compartidos en `lib/games/types.ts`: `EngineCallbacks { onScore, onLives, onLevel, onGameOver }`, `Engine { start, pause, resume, restart, destroy }`, `EngineFactory = (canvas, callbacks) => Engine`.
 - Patrón de cada engine: función factory (no clase) que recibe el canvas, agrega/quita listeners de teclado en `start()`/`destroy()`, usa un loop `requestAnimationFrame` con `dt` acotado, y un patrón `emitIfChanged()` para evitar `setState` en cada frame.
 - `components/game-player.tsx` busca el engine en `ENGINE_REGISTRY[game.engine]` y tiene casos especiales: Tetris (game over a un solo golpe, canvas vertical 300×600) y Arkanoid (overlay de pausa dibujado en el propio canvas, bloquea el overlay genérico de React).
@@ -61,12 +72,10 @@ Estado actual: MVP funcional con 4 juegos reales y persistencia de puntajes en S
 
 - Tabla única `public.scores` (`game_id`, `player_name`, `score` con `CHECK (score > 0 AND score < 10000000)`, `created_at`), RLS habilitado con políticas públicas de `SELECT`/`INSERT` para `anon`/`authenticated`. No hay carpeta `supabase/` ni migraciones `.sql` en el repo — el SQL vive documentado dentro de `specs/06-leaderboard-asteroides-supabase.md` y se aplicó vía `mcp__supabase__apply_migration`.
 - `lib/scores.ts` centraliza el acceso: `fetchTopScores`, `fetchRecentScores`, `fetchTopScoresAllGames`, `insertScore`. Tipos `RealScoreRow`/`RecentScoreRow`. No crear queries sueltas a `scores` fuera de este archivo.
-- Consumidores: `app/juegos/[id]/page.tsx` (server, top 10), `hall-of-fame.tsx` (cliente, top 12 por pestaña), `home.tsx` (server, ticker y top jugadores), `game-player.tsx` (inserta puntaje al finalizar partida, los 4 juegos).
+- Consumidores: `app/juegos/[id]/page.tsx` (server, top 10), `hall-of-fame.tsx` (cliente, top 12 por pestaña), `home.tsx` (server, ticker y top jugadores), `game-player.tsx` (inserta puntaje al finalizar partida, los 5 juegos).
 
 ## Specs (`specs/`)
 
-Flujo Spec Driven Design activo — ver sección Skills y agentes. Specs 01 a 10 ya implementadas (mock inicial → landing → about/contacto → config Supabase → Asteroides → leaderboard real → Tetris → Arkanoid → Snake → eliminación de juegos mock). Antes de iniciar trabajo nuevo, revisar `specs/` para no duplicar un spec existente y seguir la numeración consecutiva.
-
-Pipeline para un juego nuevo: agente `game-planner` (decide qué) → `/spec-juego` (documenta el spec) → `/spec-impl` (implementa).
+Flujo Spec Driven Design activo — ver sección Skills y agentes. Specs 01 a 23 ya implementadas: 01–10 (mock inicial → landing → about/contacto → config Supabase → Asteroides → leaderboard real → Tetris → Arkanoid → Snake → eliminación de juegos mock), 11–13 (skins de Asteroides/Snake/Arkanoid), 14–15 (controles táctiles y responsivo móvil), 16–17 (Frogger y su port móvil), 18–23 (checklist de performance de motores y su aplicación a cada juego, incluido Frogger). Antes de iniciar trabajo nuevo, revisar `specs/` para no duplicar un spec existente y seguir la numeración consecutiva.
 
 Trabajo futuro mencionado en specs pero sin spec propio todavía: autenticación real + `middleware.ts` de sesión, sincronizar `game.best`/`game.plays` con datos reales, Realtime/Edge Functions, suite de pruebas automatizadas.
