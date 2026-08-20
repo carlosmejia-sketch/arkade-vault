@@ -49,8 +49,9 @@ export const TOUCH_CONFIG: Record<GameId, TouchControlConfig> = {
     buttonB: null,
     repeatCodes: [],
   },
-  // Config mínima para que TouchControls no truene con Frogger — el diseño
-  // táctil fino (tamaño de hitbox, layout) se cubre en el spec de mobile-porter.
+  // Frogger avanza por salto discreto en cada keydown y descarta cualquier
+  // evento mientras frog.animating es true (120ms) — mismo patrón que Tetris,
+  // por eso las 4 direcciones necesitan repeatCodes (ver specs/17-movil-frogger.md).
   frogger: {
     up: "ArrowUp",
     down: "ArrowDown",
@@ -58,6 +59,6 @@ export const TOUCH_CONFIG: Record<GameId, TouchControlConfig> = {
     right: "ArrowRight",
     buttonA: null,
     buttonB: null,
-    repeatCodes: [],
+    repeatCodes: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"],
   },
 };
