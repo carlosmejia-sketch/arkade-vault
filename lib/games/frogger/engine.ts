@@ -15,6 +15,8 @@
 //   secundarios de skin-designer / mobile-porter).
 
 import type { Engine, EngineCallbacks } from "../types";
+import type { GamePalette } from "../skins";
+import { getPalette } from "../skins";
 
 const COLS = 16;
 const ROWS = 14;
@@ -82,8 +84,10 @@ export type FroggerEngine = Engine;
 export function createFroggerEngine(
   canvas: HTMLCanvasElement,
   callbacks: EngineCallbacks,
+  initialPalette: GamePalette = getPalette("frogger", "clasico")!,
 ): FroggerEngine {
   const ctx = canvas.getContext("2d")!;
+  let palette = initialPalette;
 
   let lanes: Lane[];
   let frog: Frog;
@@ -432,11 +436,12 @@ export function createFroggerEngine(
   }
 
   function zoneColor(row: number): string {
-    if (row === ROW_GOALS) return "#052a12";
-    if (row >= ROW_RIVER_TOP && row <= ROW_RIVER_BOT) return "#001d3d";
-    if (row === ROW_SAFE_MID) return "#06331a";
-    if (row >= ROW_ROAD_TOP && row <= ROW_ROAD_BOT) return "#0a0a0a";
-    return "#06331a";
+    if (row === ROW_GOALS) return palette.zonaMeta!;
+    if (row >= ROW_RIVER_TOP && row <= ROW_RIVER_BOT) return palette.zonaRio!;
+    if (row === ROW_SAFE_MID) return palette.zonaSegura!;
+    if (row >= ROW_ROAD_TOP && row <= ROW_ROAD_BOT)
+      return palette.zonaCarretera!;
+    return palette.zonaSegura!;
   }
 
   function drawBackground() {
@@ -445,13 +450,13 @@ export function createFroggerEngine(
       ctx.fillRect(0, row * CELL, W, CELL);
     }
     GOAL_COLS.forEach((startCol, i) => {
-      ctx.fillStyle = "#0b4a22";
+      ctx.fillStyle = palette.casillaMetaFondo!;
       ctx.fillRect(startCol * CELL, 0, GOAL_WIDTH * CELL, CELL);
-      ctx.strokeStyle = "#d4af37";
+      ctx.strokeStyle = palette.casillaMetaBorde!;
       ctx.lineWidth = 2;
       ctx.strokeRect(startCol * CELL + 1, 1, GOAL_WIDTH * CELL - 2, CELL - 2);
       if (goalsOccupied[i]) {
-        ctx.fillStyle = "#33ff66";
+        ctx.fillStyle = palette.acento;
         ctx.beginPath();
         ctx.ellipse(
           startCol * CELL + CELL,
@@ -474,22 +479,22 @@ export function createFroggerEngine(
         const y = lane.row * CELL;
         const w = entity.width * CELL;
         if (entity.type === "car") {
-          ctx.fillStyle = "#ff2d55";
+          ctx.fillStyle = palette.auto!;
           ctx.fillRect(x + 2, y + 8, w - 4, CELL - 16);
-          ctx.fillStyle = "#222";
+          ctx.fillStyle = palette.autoRueda!;
           ctx.beginPath();
           ctx.arc(x + 8, y + CELL - 8, 5, 0, Math.PI * 2);
           ctx.arc(x + w - 8, y + CELL - 8, 5, 0, Math.PI * 2);
           ctx.fill();
         } else if (entity.type === "truck") {
-          ctx.fillStyle = "#8c8c9c";
+          ctx.fillStyle = palette.entidadSecundaria;
           ctx.fillRect(x + 2, y + 6, w - 4, CELL - 12);
-          ctx.fillStyle = "#555";
+          ctx.fillStyle = palette.camionCabina!;
           ctx.fillRect(x + 2, y + 6, Math.min(24, w - 4), CELL - 12);
         } else if (entity.type === "log") {
-          ctx.fillStyle = "#7a4a1f";
+          ctx.fillStyle = palette.tronco!;
           ctx.fillRect(x + 2, y + 10, w - 4, CELL - 20);
-          ctx.strokeStyle = "#5a3414";
+          ctx.strokeStyle = palette.troncoVeta!;
           ctx.lineWidth = 2;
           for (let lx = x + 8; lx < x + w - 8; lx += 12) {
             ctx.beginPath();
@@ -503,7 +508,7 @@ export function createFroggerEngine(
             const cx = x + i * CELL + CELL / 2;
             const cy = y + CELL / 2;
             ctx.globalAlpha = entity.submerged ? 0.3 : 1;
-            ctx.fillStyle = "#2fbf5a";
+            ctx.fillStyle = palette.tortuga!;
             ctx.beginPath();
             ctx.arc(cx, cy, 14, 0, Math.PI * 2);
             ctx.fill();
@@ -527,7 +532,7 @@ export function createFroggerEngine(
     }
     const cx = px + CELL / 2;
     const cy = py + CELL / 2;
-    ctx.fillStyle = "#39ff5c";
+    ctx.fillStyle = palette.entidadPrincipal;
     ctx.beginPath();
     ctx.ellipse(cx, cy, 14, 12, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -544,7 +549,7 @@ export function createFroggerEngine(
   }
 
   function drawHUD() {
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = palette.hud;
     ctx.font = "16px monospace";
     ctx.textAlign = "left";
     ctx.fillText(`SCORE ${score}`, 8, 18);
@@ -556,16 +561,21 @@ export function createFroggerEngine(
     const total = timeForLevel(level);
     const ratio = Math.max(0, Math.min(1, roundTimer / total));
     ctx.fillStyle =
-      ratio > 0.5 ? "#33ff66" : ratio > 0.2 ? "#f5ff00" : "#ff2d55";
+      ratio > 0.5
+        ? palette.barraTiempoSegura!
+        : ratio > 0.2
+          ? palette.barraTiempoAlerta!
+          : palette.barraTiempoPeligro!;
     ctx.fillRect(0, 0, W * ratio, 4);
   }
 
   function drawOverlay(title: string, sub: string) {
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = palette.overlay;
     ctx.font = "bold 40px monospace";
     ctx.fillText(title, W / 2, H / 2 - 16);
     ctx.font = "16px monospace";
+    ctx.fillStyle = palette.textoHud;
     ctx.fillText(sub, W / 2, H / 2 + 20);
   }
 
@@ -631,5 +641,9 @@ export function createFroggerEngine(
     window.removeEventListener("keydown", onKeyDown);
   }
 
-  return { start, pause, resume, restart, destroy };
+  function setPalette(next: GamePalette) {
+    palette = next;
+  }
+
+  return { start, pause, resume, restart, destroy, setPalette };
 }
