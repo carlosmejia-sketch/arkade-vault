@@ -49,4 +49,16 @@ export const TOUCH_CONFIG: Record<GameId, TouchControlConfig> = {
     buttonB: null,
     repeatCodes: [],
   },
+  // Frogger avanza por salto discreto en cada keydown y descarta cualquier
+  // evento mientras frog.animating es true (120ms) — mismo patrón que Tetris,
+  // por eso las 4 direcciones necesitan repeatCodes (ver specs/17-movil-frogger.md).
+  frogger: {
+    up: "ArrowUp",
+    down: "ArrowDown",
+    left: "ArrowLeft",
+    right: "ArrowRight",
+    buttonA: null,
+    buttonB: null,
+    repeatCodes: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"],
+  },
 };

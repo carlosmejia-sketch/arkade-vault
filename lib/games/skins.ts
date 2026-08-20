@@ -4,7 +4,7 @@
 
 export type SkinId = "clasico" | "neon" | "retro";
 
-export type GameId = "asteroides" | "tetris" | "arkanoid" | "snake";
+export type GameId = "asteroides" | "tetris" | "arkanoid" | "snake" | "frogger";
 
 // Roles de color de Asteroides. `rejilla` no aplica: el motor es vectorial y
 // no dibuja grilla de fondo.
@@ -29,6 +29,23 @@ export type GamePalette = {
   bloqueRosa?: string;
   bloqueVerde?: string;
   bloqueGris?: string;
+  // Roles propios de Frogger: 4 fondos de zona + vehículos + río + meta +
+  // barra de tiempo. Ver specs/16-skins-frogger.md.
+  zonaMeta?: string;
+  zonaRio?: string;
+  zonaSegura?: string;
+  zonaCarretera?: string;
+  casillaMetaFondo?: string;
+  casillaMetaBorde?: string;
+  auto?: string;
+  autoRueda?: string;
+  camionCabina?: string;
+  tronco?: string;
+  troncoVeta?: string;
+  tortuga?: string;
+  barraTiempoSegura?: string;
+  barraTiempoAlerta?: string;
+  barraTiempoPeligro?: string;
 };
 
 export const DEFAULT_SKIN: SkinId = "clasico";
@@ -170,6 +187,89 @@ export const SKINS: Partial<Record<GameId, Record<SkinId, GamePalette>>> = {
       bloqueRosa: "#ff7a52",
       bloqueVerde: "#5c8a35",
       bloqueGris: "#7a5a3a",
+    },
+  },
+  frogger: {
+    clasico: {
+      fondo: "#06331a",
+      entidadPrincipal: "#39ff5c",
+      entidadSecundaria: "#8c8c9c",
+      proyectil: "#ff2d55",
+      acento: "#33ff66",
+      peligro: "#ff2d55",
+      particula: "#33ff66",
+      hud: "#ffffff",
+      overlay: "#ffffff",
+      textoHud: "#ffffff",
+      zonaMeta: "#052a12",
+      zonaRio: "#001d3d",
+      zonaSegura: "#06331a",
+      zonaCarretera: "#0a0a0a",
+      casillaMetaFondo: "#0b4a22",
+      casillaMetaBorde: "#d4af37",
+      auto: "#ff2d55",
+      autoRueda: "#222222",
+      camionCabina: "#555555",
+      tronco: "#7a4a1f",
+      troncoVeta: "#5a3414",
+      tortuga: "#2fbf5a",
+      barraTiempoSegura: "#33ff66",
+      barraTiempoAlerta: "#f5ff00",
+      barraTiempoPeligro: "#ff2d55",
+    },
+    neon: {
+      fondo: "#0a0a0f",
+      entidadPrincipal: "#00f5ff",
+      entidadSecundaria: "#f5ff00",
+      proyectil: "#ff006e",
+      acento: "#00ff88",
+      peligro: "#ff006e",
+      particula: "#00ff88",
+      hud: "#00f5ff",
+      overlay: "#f5ff00",
+      textoHud: "rgba(255, 255, 255, 0.75)",
+      zonaMeta: "#001d17",
+      zonaRio: "#001522",
+      zonaSegura: "#0a0a0f",
+      zonaCarretera: "#050507",
+      casillaMetaFondo: "#003d2e",
+      casillaMetaBorde: "#00f5ff",
+      auto: "#ff006e",
+      autoRueda: "#1a1a1f",
+      camionCabina: "#b3b300",
+      tronco: "#b35f1a",
+      troncoVeta: "#7a3f10",
+      tortuga: "#00ff88",
+      barraTiempoSegura: "#00ff88",
+      barraTiempoAlerta: "#f5ff00",
+      barraTiempoPeligro: "#ff006e",
+    },
+    retro: {
+      fondo: "#150d00",
+      entidadPrincipal: "#ffb000",
+      entidadSecundaria: "#c9b382",
+      proyectil: "#ff3300",
+      acento: "#33cc70",
+      peligro: "#ff3300",
+      particula: "#33cc70",
+      hud: "#ffb000",
+      overlay: "#ffb000",
+      textoHud: "#b3792a",
+      zonaMeta: "#1a0f00",
+      zonaRio: "#0d0a00",
+      zonaSegura: "#150d00",
+      zonaCarretera: "#0a0700",
+      casillaMetaFondo: "#2a1800",
+      casillaMetaBorde: "#ffb000",
+      auto: "#ff3300",
+      autoRueda: "#402000",
+      camionCabina: "#8a7550",
+      tronco: "#8a5a1f",
+      troncoVeta: "#5c3b14",
+      tortuga: "#33cc70",
+      barraTiempoSegura: "#33cc70",
+      barraTiempoAlerta: "#ffb000",
+      barraTiempoPeligro: "#ff3300",
     },
   },
 };

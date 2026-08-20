@@ -8,6 +8,7 @@ Estados: `pendiente` · `en-spec` · `implementado`
 | Tetris     | `tetris`     | —       | —    | —     | pendiente    | —                              | —          |
 | Arkanoid   | `arkanoid`   | ✓       | ✓    | ✓     | implementado | `specs/13-skins-arkanoid.md`   | 2026-08-14 |
 | Snake      | `snake`      | ✓       | ✓    | ✓     | en-spec      | `specs/12-skins-snake.md`      | 2026-08-14 |
+| Frogger    | `frogger`    | ✓       | ✓    | ✓     | en-spec      | `specs/16-skins-frogger.md`    | 2026-08-20 |
 
 ## Fichas
 
@@ -239,6 +240,106 @@ Estados: `pendiente` · `en-spec` · `implementado`
 - `GamePalette` gana 8 campos opcionales propios de Arkanoid (`tinteSprites` + 7 `bloque*`) — primera extensión del tipo compartido desde SPEC 11, sin tocar los 10 campos existentes de Asteroides.
 - Técnica de recoloreo: tinte sobre sprite (`globalCompositeOperation: "source-atop"`) con cacheo por `(sprite, color)`, no sprites alternos por skin — ver spec para detalle y riesgo de rendimiento si no se cachea.
 - Implementación (`lib/games/skins.ts` entrada `arkanoid` + campos nuevos de `GamePalette`, migración de `lib/games/arkanoid/engine.ts`) todavía no ejecutada — spec en estado Borrador, pendiente de `/spec-impl specs/13-skins-arkanoid.md`.
+
+### `frogger` — Frogger · `en-spec` · 2026-08-20
+
+**Roles de color detectados:**
+
+- Base compartido (`GamePalette`): `entidadPrincipal` (rana), `entidadSecundaria` (camión), `peligro` (auto), `acento` (marcador de meta ocupada), `hud` (texto SCORE/NIVEL/vidas), `overlay` (título "GAME OVER"), `textoHud` (subtítulo — hoy idéntico a `overlay` en el engine actual, sin dimming)
+- `fondo` requerido por el tipo pero sin consumidor directo (motor pinta 4 fondos de zona, no uno solo) — fijado al valor de `zonaSegura`
+- `proyectil`/`particula` sin consumidor — alias de `peligro`/`acento` respectivamente
+- **15 roles nuevos propios de Frogger** (primera extensión de `GamePalette` desde Arkanoid, la más grande hasta ahora): `zonaMeta`, `zonaRio`, `zonaSegura`, `zonaCarretera` (4 fondos de zona simultáneos en pantalla), `casillaMetaFondo`, `casillaMetaBorde` (las 5 bocas de meta), `auto` (alias documentado de `peligro`), `autoRueda`, `camionCabina`, `tronco`, `troncoVeta`, `tortuga`, `barraTiempoSegura`, `barraTiempoAlerta`, `barraTiempoPeligro`
+- `rejilla` no aplica (motor vectorial, sin grilla de fondo dibujada aparte de las 4 zonas)
+- Ojos de la rana (blanco/pupila negra) quedan fijos en las 3 skins, sin parametrizar — detalle facial de 3px sin impacto temático
+
+**Paleta `clasico` (default, igual al engine actual):**
+
+| Rol                              | Hex                           |
+| -------------------------------- | ----------------------------- |
+| zonaMeta                         | `#052a12`                     |
+| zonaRio                          | `#001d3d`                     |
+| zonaSegura                       | `#06331a`                     |
+| zonaCarretera                    | `#0a0a0a`                     |
+| casillaMetaFondo                 | `#0b4a22`                     |
+| casillaMetaBorde                 | `#d4af37`                     |
+| acento (meta ocupada)            | `#33ff66`                     |
+| entidadPrincipal (rana)          | `#39ff5c`                     |
+| peligro/auto                     | `#ff2d55`                     |
+| autoRueda                        | `#222222`                     |
+| entidadSecundaria (camión)       | `#8c8c9c`                     |
+| camionCabina                     | `#555555`                     |
+| tronco                           | `#7a4a1f`                     |
+| troncoVeta                       | `#5a3414`                     |
+| tortuga                          | `#2fbf5a`                     |
+| hud/overlay/textoHud             | `#ffffff`                     |
+| barraTiempoSegura/Alerta/Peligro | `#33ff66`/`#f5ff00`/`#ff2d55` |
+
+**Paleta `neon`:**
+
+| Rol                              | Hex                           |
+| -------------------------------- | ----------------------------- |
+| zonaMeta                         | `#001d17`                     |
+| zonaRio                          | `#001522`                     |
+| zonaSegura                       | `#0a0a0f`                     |
+| zonaCarretera                    | `#050507`                     |
+| casillaMetaFondo                 | `#003d2e`                     |
+| casillaMetaBorde                 | `#00f5ff`                     |
+| acento (meta ocupada)            | `#00ff88`                     |
+| entidadPrincipal (rana)          | `#00f5ff`                     |
+| peligro/auto                     | `#ff006e`                     |
+| autoRueda                        | `#1a1a1f`                     |
+| entidadSecundaria (camión)       | `#f5ff00`                     |
+| camionCabina                     | `#b3b300`                     |
+| tronco                           | `#b35f1a`                     |
+| troncoVeta                       | `#7a3f10`                     |
+| tortuga                          | `#00ff88`                     |
+| hud                              | `#00f5ff`                     |
+| overlay                          | `#f5ff00`                     |
+| textoHud                         | `rgba(255,255,255,0.75)`      |
+| barraTiempoSegura/Alerta/Peligro | `#00ff88`/`#f5ff00`/`#ff006e` |
+
+**Paleta `retro` (esquema semáforo verde/ámbar/rojo, no monocromo puro):**
+
+| Rol                              | Hex                           |
+| -------------------------------- | ----------------------------- |
+| zonaMeta                         | `#1a0f00`                     |
+| zonaRio                          | `#0d0a00`                     |
+| zonaSegura                       | `#150d00`                     |
+| zonaCarretera                    | `#0a0700`                     |
+| casillaMetaFondo                 | `#2a1800`                     |
+| casillaMetaBorde                 | `#ffb000`                     |
+| acento (meta ocupada)            | `#33cc70`                     |
+| entidadPrincipal (rana)          | `#ffb000`                     |
+| peligro/auto                     | `#ff3300`                     |
+| autoRueda                        | `#402000`                     |
+| entidadSecundaria (camión)       | `#c9b382`                     |
+| camionCabina                     | `#8a7550`                     |
+| tronco                           | `#8a5a1f`                     |
+| troncoVeta                       | `#5c3b14`                     |
+| tortuga                          | `#33cc70`                     |
+| hud/overlay                      | `#ffb000`                     |
+| textoHud                         | `#b3792a`                     |
+| barraTiempoSegura/Alerta/Peligro | `#33cc70`/`#ffb000`/`#ff3300` |
+
+**Contraste (WCAG, contra fondo propio de zona; ver spec para tabla completa de 48 pares):**
+
+| Skin    | Rol                                                                                                                        | Ratio             | ¿Pasa?                                                  |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------- |
+| clasico | entidadPrincipal (rana) vs las 4 zonas                                                                                     | 10.45:1 – 14.74:1 | Sí                                                      |
+| clasico | tronco vs zonaRio                                                                                                          | **2.27:1**        | **No** — deuda preexistente del engine (ver Pendientes) |
+| clasico | peligro/auto, entidadSecundaria/camión, tortuga, acento, casillaMetaBorde, hud, overlay, barra de tiempo                   | 4.28:1 – 19.80:1  | Sí                                                      |
+| neon    | entidadPrincipal (rana) vs las 4 zonas                                                                                     | 13.05:1 – 15.04:1 | Sí                                                      |
+| neon    | peligro/auto, entidadSecundaria/camión, tronco, tortuga, acento, casillaMetaBorde, hud, overlay, textoHud, barra de tiempo | 4.04:1 – 18.61:1  | Sí                                                      |
+| retro   | entidadPrincipal (rana) vs las 4 zonas                                                                                     | 10.31:1 – 10.99:1 | Sí                                                      |
+| retro   | peligro/auto, entidadSecundaria/camión, tronco, tortuga, acento, casillaMetaBorde, hud, overlay, textoHud, barra de tiempo | 3.36:1 – 10.99:1  | Sí                                                      |
+
+**Pendientes / riesgos:**
+
+- `clasico`/`tronco` (`#7a4a1f`) vs `zonaRio` (`#001d3d`) da 2.27:1, bajo el mínimo de 3:1 — color real del engine hoy en producción, documentado como deuda preexistente aceptada (no introducida ni corregida por este spec, `clasico` debe ser visualmente nulo).
+- `clasico`: `peligro`/auto vs `entidadSecundaria`/camión casi no se distinguen en escala de grises (1.10:1) aunque el hue sí es muy distinto — misma deuda preexistente, `neon`/`retro` sí la resuelven con más margen.
+- `retro`: `entidadSecundaria`/camión vs `entidadPrincipal`/rana (1.12:1) y `tronco` vs `tortuga` (2.81:1) quedan con margen ajustado en escala de grises — riesgo menor, hue muy distinto en visión de color normal, documentado en el spec.
+- `GamePalette` gana 15 campos opcionales nuevos — la extensión más grande hasta ahora (más que los 8 de Arkanoid); si un quinto juego necesita otra extensión grande, evaluar refactor a tipo genérico + extensión tipada por juego.
+- Implementación (`lib/games/skins.ts` extensión de `GamePalette` + entrada `frogger`, migración de `lib/games/frogger/engine.ts`) todavía no ejecutada — spec en estado Borrador, pendiente de `/spec-impl specs/16-skins-frogger.md`.
 
 <!--
 Plantilla de ficha — copiar por cada juego procesado:

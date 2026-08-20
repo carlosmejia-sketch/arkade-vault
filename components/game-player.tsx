@@ -23,6 +23,9 @@ export default function GamePlayer({ game }: { game: Game }) {
   // Arkanoid dibuja su propio overlay de pausa (con selector de nivel) sobre
   // el canvas; el overlay genérico de React lo tapa y bloquea sus clics.
   const isArkanoid = game.id === "arkanoid";
+  // Frogger usa canvas 640x560 (16x14 celdas de 40px) en vez del 800x600
+  // estándar.
+  const isFrogger = game.id === "frogger";
   const hasSkins = Boolean(SKINS[game.id as GameId]);
 
   const [skin, setSkin] = useState<SkinId>(() => {
@@ -172,9 +175,15 @@ export default function GamePlayer({ game }: { game: Game }) {
         <div className="crt-screen">
           <canvas
             ref={canvasRef}
-            width={isTetris ? 300 : 800}
-            height={600}
-            className={isTetris ? "tetris-canvas" : "asteroides-canvas"}
+            width={isTetris ? 300 : isFrogger ? 640 : 800}
+            height={isFrogger ? 560 : 600}
+            className={
+              isTetris
+                ? "tetris-canvas"
+                : isFrogger
+                  ? "frogger-canvas"
+                  : "asteroides-canvas"
+            }
           />
           {paused && !isArkanoid && (
             <div

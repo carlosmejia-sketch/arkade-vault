@@ -805,6 +805,31 @@ a {
   box-shadow: 0 0 6px var(--yellow);
 }
 
+.cover-frogger {
+  background: linear-gradient(180deg, #06331a 0%, #001d3d 55%, #0a0a0a 100%);
+}
+.cover-frogger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#7a4a1f, #7a4a1f) 10% 38%/35% 10% no-repeat,
+    linear-gradient(#ff2d55, #ff2d55) 55% 70%/30% 10% no-repeat,
+    linear-gradient(#8c8c9c, #8c8c9c) 15% 82%/40% 10% no-repeat;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.35));
+}
+.cover-frogger::before {
+  content: "";
+  position: absolute;
+  left: 46%;
+  top: 18%;
+  width: 16px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
 /* ===== detail screen ===== */
 .av-detail {
   display: grid;
@@ -1094,6 +1119,18 @@ a {
 /* motor real: canvas fijo 300x600 (vertical) — se ajusta al alto del CRT
    (aspect-ratio 4/3) preservando su proporción, sin deformarlo */
 .tetris-canvas {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  width: auto;
+  transform: translateX(-50%);
+  display: block;
+}
+
+/* motor real: canvas fijo 640x560 — se ajusta al alto del CRT (aspect-ratio
+   4/3) preservando su proporción, igual que .tetris-canvas */
+.frogger-canvas {
   position: absolute;
   top: 0;
   left: 50%;
