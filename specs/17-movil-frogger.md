@@ -1,6 +1,6 @@
 # SPEC 17 — Porte a móvil de Frogger
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 14 (controles táctiles), SPEC 15 (responsivo móvil 360–428px), specs/game-jam/frogger/01-frogger-core.md (motor), SPEC 16 (skins de Frogger)
 > **Fecha:** 2026-08-20
 > **Objetivo:** Aplicar a Frogger el patrón ya validado de controles táctiles (SPEC 14) y ausencia de desbordamiento en 360–428px (SPEC 15), completando el diseño táctil fino que la entrada mínima de `TOUCH_CONFIG.frogger` dejó pendiente, sin tocar `lib/games/frogger/engine.ts`.
