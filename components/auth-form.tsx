@@ -3,20 +3,59 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "@/lib/session";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AuthForm() {
   const router = useRouter();
-  const { signIn, signOut } = useSession();
+  const { signInGuest } = useSession();
+  const [supabase] = useState(() => createClient());
 
   const [tab, setTab] = useState<"in" | "up">("in");
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  // No hay autenticación real: cualquier entrada abre sesión.
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    signIn({ name: (user || "PLAYER1").toUpperCase().slice(0, 10) });
+    setError(null);
+    setPending(true);
+
+    const { error: authError } =
+      tab === "up"
+        ? await supabase.auth.signUp({
+            email,
+            password: pass,
+            options: {
+              data: {
+                username: (user || "PLAYER1").toUpperCase().slice(0, 10),
+              },
+            },
+          })
+        : await supabase.auth.signInWithPassword({ email, password: pass });
+
+    setPending(false);
+
+    if (authError) {
+      setError(authError.message);
+      return;
+    }
+
+    router.push("/biblioteca");
+  };
+
+  const submitOAuth = async (provider: "google" | "github") => {
+    setError(null);
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (authError) setError(authError.message);
+  };
+
+  const playAsGuest = () => {
+    signInGuest(user);
     router.push("/biblioteca");
   };
 
@@ -40,34 +79,41 @@ export default function AuthForm() {
         </div>
 
         <div className="auth-tabs">
-          <button className={tab === "in" ? "on" : ""} onClick={() => setTab("in")}>
+          <button
+            className={tab === "in" ? "on" : ""}
+            onClick={() => setTab("in")}
+          >
             INICIAR SESIÓN
           </button>
-          <button className={tab === "up" ? "on" : ""} onClick={() => setTab("up")}>
+          <button
+            className={tab === "up" ? "on" : ""}
+            onClick={() => setTab("up")}
+          >
             CREAR CUENTA
           </button>
         </div>
 
         <form onSubmit={submit}>
-          <div className="field">
-            <label>Usuario</label>
-            <input
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              placeholder="px_kai"
-            />
-          </div>
           {tab === "up" && (
             <div className="field slide-in">
-              <label>Correo electrónico</label>
+              <label>Usuario</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jugador@vault.gg"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                placeholder="px_kai"
               />
             </div>
           )}
+          <div className="field">
+            <label>Correo electrónico</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="jugador@vault.gg"
+              required
+            />
+          </div>
           <div className="field">
             <label>Contraseña</label>
             <input
@@ -75,15 +121,34 @@ export default function AuthForm() {
               value={pass}
               onChange={(e) => setPass(e.target.value)}
               placeholder="••••••••"
+              required
             />
           </div>
+
+          {error && (
+            <div
+              className="mono"
+              style={{
+                color: "var(--danger, #ff4d5e)",
+                fontSize: 12,
+                marginTop: 6,
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           <button
             className="btn lg"
             type="submit"
+            disabled={pending}
             style={{ width: "100%", marginTop: 8 }}
           >
-            {tab === "in" ? "ENTRAR AL VAULT" : "CREAR Y JUGAR"}
+            {pending
+              ? "UN MOMENTO…"
+              : tab === "in"
+                ? "ENTRAR AL VAULT"
+                : "CREAR Y JUGAR"}
           </button>
         </form>
 
@@ -91,20 +156,25 @@ export default function AuthForm() {
           className="btn ghost"
           type="button"
           style={{ width: "100%", marginTop: 10 }}
-          onClick={() => {
-            signOut();
-            router.push("/biblioteca");
-          }}
+          onClick={playAsGuest}
         >
           JUGAR COMO INVITADO
         </button>
 
         <div className="auth-divider">O CONTINÚA CON</div>
         <div className="social">
-          <button className="btn ghost" type="button">
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => submitOAuth("google")}
+          >
             ◆ GOOGLE
           </button>
-          <button className="btn ghost" type="button">
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => submitOAuth("github")}
+          >
             ▣ GITHUB
           </button>
         </div>
