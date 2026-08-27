@@ -1,6 +1,6 @@
 # SPEC 24 — Autenticación real con Supabase Auth
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 04 (config Supabase)
 > **Fecha:** 2026-08-27
 > **Objetivo:** Reemplazar la sesión mock (`localStorage`) por autenticación real con Supabase Auth (email/password, Google, GitHub) en la pantalla `/acceso`, manteniendo el modo invitado y sin bloquear ninguna ruta todavía.
