@@ -6,16 +6,19 @@ export async function GET() {
     const { error } = await supabase.auth.getSession();
 
     if (error) {
+      console.error("Health check de Supabase falló:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "Error de conexión" },
         { status: 500 },
       );
     }
 
     return Response.json({ ok: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Error desconocido.";
-    return Response.json({ ok: false, error: message }, { status: 500 });
+    console.error("Health check de Supabase falló:", error);
+    return Response.json(
+      { ok: false, error: "Error de conexión" },
+      { status: 500 },
+    );
   }
 }
