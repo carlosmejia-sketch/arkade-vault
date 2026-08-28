@@ -38,13 +38,9 @@ export default function GamePlayer({ game }: { game: Game }) {
   const [engineLevel, setEngineLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  // null = el jugador no ha escrito sus iniciales, así que manda la sesión.
-  // La sesión llega después de montar (localStorage), por eso el nombre se
-  // deriva en el render en vez de copiarse a estado con un efecto.
-  const [typedName, setTypedName] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const name = typedName ?? user?.name ?? "INVITADO";
+  const name = user?.name ?? "INVITADO";
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<Engine | null>(null);
@@ -235,21 +231,18 @@ export default function GamePlayer({ game }: { game: Game }) {
             <div className="final">{score.toLocaleString("es-ES")}</div>
             {!saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setTypedName(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                />
+                <input value={name} readOnly placeholder="TUS INICIALES" />
                 <button
                   className="btn yellow"
+                  disabled={!user}
                   onClick={() => {
+                    if (!user) return;
                     saveScore({ game: game.id, score, name });
                     insertScore(createClient(), {
                       gameId: game.id,
                       playerName: name,
                       score,
+                      userId: user.id,
                     }).catch((err) => {
                       console.error(
                         "Error al guardar puntaje en Supabase:",

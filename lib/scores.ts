@@ -87,12 +87,13 @@ export async function fetchTopScoresAllGames(
 
 export async function insertScore(
   supabase: SupabaseClient,
-  entry: { gameId: string; playerName: string; score: number },
+  entry: { gameId: string; playerName: string; score: number; userId: string },
 ): Promise<void> {
   const { error } = await supabase.from("scores").insert({
     game_id: entry.gameId,
     player_name: entry.playerName,
     score: entry.score,
+    user_id: entry.userId,
   });
 
   if (error) throw error;

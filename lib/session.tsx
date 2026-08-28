@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { deriveAlias } from "@/lib/auth-alias";
 
 export type SessionUser = {
+  id: string;
   /** Alias en mayúsculas, máximo 10 caracteres: "PX_KAI". */
   name: string;
   email: string;
@@ -30,7 +31,7 @@ const SCORES_KEY = "av_scores";
 
 type SessionValue = {
   user: SessionUser | null;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   saveScore: (entry: Omit<SavedScore, "at">) => void;
 };
 
@@ -46,6 +47,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
+          id: session.user.id,
           name: deriveAlias(session.user),
           email: session.user.email ?? "",
         });
@@ -59,6 +61,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
+          id: session.user.id,
           name: deriveAlias(session.user),
           email: session.user.email ?? "",
         });
@@ -70,9 +73,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
     setUser(null);
-    supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   }, [supabase]);
 
   const saveScore = useCallback((entry: Omit<SavedScore, "at">) => {
