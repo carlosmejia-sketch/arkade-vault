@@ -2,17 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/session";
 
 export default function Nav() {
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { user, signOut } = useSession();
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [menuOpen]);
+
   const homeActive = pathname === "/";
   // "Biblioteca" cubre /biblioteca y todo el árbol de /juegos (detalle y reproductor).
-  const libraryActive = pathname === "/biblioteca" || pathname.startsWith("/juegos");
+  const libraryActive =
+    pathname === "/biblioteca" || pathname.startsWith("/juegos");
   const hallActive = pathname === "/salon";
   const aboutActive = pathname === "/acerca-de";
   const authActive = pathname === "/acceso";
@@ -48,9 +60,31 @@ export default function Nav() {
           <span>CRÉDITOS · 03</span>
         </div>
         {user ? (
-          <button className="btn ghost auth-btn" onClick={signOut}>
-            {user.name} ▾
-          </button>
+          <div className="user-menu" ref={menuRef}>
+            <button
+              className="btn ghost auth-btn user-trigger"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+            >
+              <span className="avatar" aria-hidden="true">
+                {user.name.charAt(0)}
+              </span>
+              {user.name} ▾
+            </button>
+            {menuOpen && (
+              <div className="user-dropdown">
+                <button
+                  className="user-dropdown-item"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    signOut();
+                  }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <Link className="btn auth-btn" href="/acceso">
             Iniciar Sesión
@@ -70,28 +104,51 @@ export default function Nav() {
         onClick={close}
       ></div>
       <aside className={"av-mobile-panel" + (open ? " open" : "")}>
-        <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>
+        <div
+          className="pixel neon-cyan"
+          style={{ fontSize: 11, marginBottom: 16 }}
+        >
           MENÚ
         </div>
         <Link className={homeActive ? "active" : ""} href="/" onClick={close}>
           Inicio
         </Link>
-        <Link className={libraryActive ? "active" : ""} href="/biblioteca" onClick={close}>
+        <Link
+          className={libraryActive ? "active" : ""}
+          href="/biblioteca"
+          onClick={close}
+        >
           Biblioteca
         </Link>
-        <Link className={hallActive ? "active" : ""} href="/salon" onClick={close}>
+        <Link
+          className={hallActive ? "active" : ""}
+          href="/salon"
+          onClick={close}
+        >
           Salón de la Fama
         </Link>
-        <Link className={aboutActive ? "active" : ""} href="/acerca-de" onClick={close}>
+        <Link
+          className={aboutActive ? "active" : ""}
+          href="/acerca-de"
+          onClick={close}
+        >
           Acerca de
         </Link>
-        <Link className={authActive ? "active" : ""} href="/acceso" onClick={close}>
+        <Link
+          className={authActive ? "active" : ""}
+          href="/acceso"
+          onClick={close}
+        >
           {user ? "Cuenta" : "Iniciar Sesión"}
         </Link>
         <div style={{ flex: 1 }}></div>
         <div
           className="pixel"
-          style={{ fontSize: 9, color: "var(--ink-faint)", letterSpacing: "0.16em" }}
+          style={{
+            fontSize: 9,
+            color: "var(--ink-faint)",
+            letterSpacing: "0.16em",
+          }}
         >
           CRÉDITOS · 03
         </div>
