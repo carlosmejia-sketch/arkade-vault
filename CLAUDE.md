@@ -16,7 +16,7 @@ Estado actual: MVP funcional con 5 juegos reales y persistencia de puntajes en S
 
 - **Rutas** (`app/`): `/` (`components/home.tsx`, landing), `/biblioteca` (`components/library.tsx`, catálogo con búsqueda), `/juegos/[id]` (detalle, server component, top 10 del leaderboard), `/juegos/[id]/jugar` (`components/game-player.tsx`, reproductor), `/acceso` (`components/auth-form.tsx`), `/salon` (`components/hall-of-fame.tsx`), `/acerca-de` (`components/about.tsx`). API routes: `app/api/contacto/route.ts` (envío de email vía Resend) y `app/api/health/supabase/route.ts` (health check de conexión).
 - **Juegos** (`lib/games.ts`): 5, todos con motor real y leaderboard real — `asteroides`, `tetris`, `arkanoid`, `snake`, `frogger`. Los juegos mock originales fueron eliminados (spec 10). `Game.engine` es un `string` obligatorio.
-- **Auth**: no es real todavía. `lib/session.tsx` maneja sesión mock vía `localStorage` (`av_user`, `av_scores`); `auth-form.tsx` acepta cualquier usuario/contraseña. No hay `middleware.ts` ni Supabase Auth real.
+- **Auth**: real desde SPEC 24 — `lib/session.tsx` usa Supabase Auth (`@supabase/ssr`), `auth-form.tsx` soporta email/password, Google y GitHub. `proxy.ts` (convención de Next 16, reemplaza `middleware.ts`) refresca cookies en cada request y, desde SPEC 26, redirige a `/acceso` sin sesión en `/juegos/[id]/jugar` (única ruta protegida; el modo invitado ya no existe).
 - **Pruebas**: no hay runner configurado (`package.json` solo tiene `dev`, `build`, `start`, `lint`). Si se agregan pruebas, documentar el script aquí.
 
 ## Restricciones del stack
@@ -36,13 +36,14 @@ Estado actual: MVP funcional con 5 juegos reales y persistencia de puntajes en S
 
 **Agentes** (definición completa en `.claude/agents/<nombre>.md`):
 
-| Agente                     | Qué hace                                                                                                                                                                                                          |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `game-jam`                 | Dado un tema de game jam, propone 3 juegos y escribe sus specs en `specs/game-jam/`; también acepta un juego ya decidido y le escribe el spec directamente. No escribe código.                                    |
-| `game-planner`             | Decide qué juego agregar al catálogo, con justificación de encaje; memoria en `references/game-suggestions-todo.md`. No escribe specs ni código.                                                                  |
-| `mobile-porter`            | Porta a móvil un juego o pantalla por vez (patrón SPEC 14/15); registro en `references/mobile-ported.md`. No escribe código.                                                                                      |
-| `skin-designer`            | Diseña los 3 skins obligatorios (clásico, neón, retro) de un juego por vez; registro en `references/game-with-themes.md`. No escribe código.                                                                      |
-| `game-performance-booster` | Audita y corrige performance de un juego por vez contra el checklist de SPEC 18; único agente de esta lista que sí escribe código (solo cambios de rendimiento). Registro en `references/performance-audited.md`. |
+| Agente                     | Qué hace                                                                                                                                                                                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `game-jam`                 | Dado un tema de game jam, propone 3 juegos y escribe sus specs en `specs/game-jam/`; también acepta un juego ya decidido y le escribe el spec directamente. No escribe código.                                                                        |
+| `game-planner`             | Decide qué juego agregar al catálogo, con justificación de encaje; memoria en `references/game-suggestions-todo.md`. No escribe specs ni código.                                                                                                      |
+| `mobile-porter`            | Porta a móvil un juego o pantalla por vez (patrón SPEC 14/15); registro en `references/mobile-ported.md`. No escribe código.                                                                                                                          |
+| `skin-designer`            | Diseña los 3 skins obligatorios (clásico, neón, retro) de un juego por vez; registro en `references/game-with-themes.md`. No escribe código.                                                                                                          |
+| `game-performance-booster` | Audita y corrige performance de un juego por vez contra el checklist de SPEC 18; único agente de esta lista que sí escribe código (solo cambios de rendimiento). Registro en `references/performance-audited.md`.                                     |
+| `security-auditor`         | Audita seguridad de punta a punta en cada corrida (base de datos + aplicación); escribe spec de remediación en `specs/`, solo lectura sobre Supabase. Registro en `references/security/security-audited.md`. No escribe código ni aplica migraciones. |
 
 Pipeline completo para un juego nuevo: `game-planner → spec-juego → /spec-impl → mobile-porter → /spec-impl → skin-designer → /spec-impl → game-performance-booster` (o `spec-impl-game` para encadenar las fases de skins + móvil automáticamente).
 
@@ -76,6 +77,6 @@ Pipeline completo para un juego nuevo: `game-planner → spec-juego → /spec-im
 
 ## Specs (`specs/`)
 
-Flujo Spec Driven Design activo — ver sección Skills y agentes. Specs 01 a 23 ya implementadas: 01–10 (mock inicial → landing → about/contacto → config Supabase → Asteroides → leaderboard real → Tetris → Arkanoid → Snake → eliminación de juegos mock), 11–13 (skins de Asteroides/Snake/Arkanoid), 14–15 (controles táctiles y responsivo móvil), 16–17 (Frogger y su port móvil), 18–23 (checklist de performance de motores y su aplicación a cada juego, incluido Frogger). Antes de iniciar trabajo nuevo, revisar `specs/` para no duplicar un spec existente y seguir la numeración consecutiva.
+Flujo Spec Driven Design activo — ver sección Skills y agentes. Specs 01 a 26 ya implementadas: 01–10 (mock inicial → landing → about/contacto → config Supabase → Asteroides → leaderboard real → Tetris → Arkanoid → Snake → eliminación de juegos mock), 11–13 (skins de Asteroides/Snake/Arkanoid), 14–15 (controles táctiles y responsivo móvil), 16–17 (Frogger y su port móvil), 18–23 (checklist de performance de motores y su aplicación a cada juego, incluido Frogger), 24–26 (auth real con Supabase Auth → endurecimiento de seguridad básico → protección de `/juegos/[id]/jugar` y eliminación del modo invitado). Antes de iniciar trabajo nuevo, revisar `specs/` para no duplicar un spec existente y seguir la numeración consecutiva.
 
-Trabajo futuro mencionado en specs pero sin spec propio todavía: autenticación real + `middleware.ts` de sesión, sincronizar `game.best`/`game.plays` con datos reales, Realtime/Edge Functions, suite de pruebas automatizadas.
+Trabajo futuro mencionado en specs pero sin spec propio todavía: sincronizar `game.best`/`game.plays` con datos reales, Realtime/Edge Functions, suite de pruebas automatizadas, Content-Security-Policy granular, recuperación de contraseña.
