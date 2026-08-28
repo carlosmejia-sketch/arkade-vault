@@ -2,12 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AuthForm() {
   const router = useRouter();
-  const { signInGuest } = useSession();
   const [supabase] = useState(() => createClient());
 
   const [tab, setTab] = useState<"in" | "up">("in");
@@ -52,11 +50,6 @@ export default function AuthForm() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (authError) setError(authError.message);
-  };
-
-  const playAsGuest = () => {
-    signInGuest(user);
-    router.push("/biblioteca");
   };
 
   return (
@@ -151,15 +144,6 @@ export default function AuthForm() {
                 : "CREAR Y JUGAR"}
           </button>
         </form>
-
-        <button
-          className="btn ghost"
-          type="button"
-          style={{ width: "100%", marginTop: 10 }}
-          onClick={playAsGuest}
-        >
-          JUGAR COMO INVITADO
-        </button>
 
         <div className="auth-divider">O CONTINÚA CON</div>
         <div className="social">
