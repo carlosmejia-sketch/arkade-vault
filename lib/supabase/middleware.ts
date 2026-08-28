@@ -25,8 +25,18 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Refresca el token de sesión si expiró; no bloquea ni redirige ninguna ruta.
-  await supabase.auth.getUser();
+  // Refresca el token de sesión si expiró.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isJugarRoute = /^\/juegos\/[^/]+\/jugar$/.test(
+    request.nextUrl.pathname,
+  );
+
+  if (isJugarRoute && !user) {
+    return NextResponse.redirect(new URL("/acceso", request.url));
+  }
 
   return supabaseResponse;
 }
