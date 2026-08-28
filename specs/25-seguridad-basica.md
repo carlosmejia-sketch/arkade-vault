@@ -1,6 +1,6 @@
 # SPEC 25 — Endurecimiento de seguridad básico (headers HTTP + revocación RPC pública)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 04 (config Supabase), SPEC 06 (leaderboard/RLS scores)
 > **Fecha:** 2026-08-28
 > **Objetivo:** Cerrar los hallazgos de seguridad pendientes del checklist de auditoría — agregar headers HTTP de seguridad en Next.js y revocar la ejecución pública de la función interna `rls_auto_enable()` — dejando documentado como riesgo aceptado lo que no se corrige.
