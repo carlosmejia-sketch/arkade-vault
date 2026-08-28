@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  PASSWORD_POLICY_REGEX,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/lib/password-policy";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -18,6 +22,12 @@ export default function AuthForm() {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    if (tab === "up" && !PASSWORD_POLICY_REGEX.test(pass)) {
+      setError(PASSWORD_POLICY_MESSAGE);
+      return;
+    }
+
     setPending(true);
 
     const { error: authError } =
