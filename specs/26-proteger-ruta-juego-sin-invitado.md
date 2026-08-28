@@ -1,6 +1,6 @@
 # SPEC 26 — Ruta de juego protegida por sesión y eliminación del modo invitado
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 24 (auth real Supabase), SPEC 06 (leaderboard/scores)
 > **Fecha:** 2026-08-28
 > **Objetivo:** Exigir sesión real vía `proxy.ts` para acceder a `/juegos/[id]/jugar` y eliminar por completo el modo invitado del sitio.
