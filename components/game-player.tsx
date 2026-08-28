@@ -28,14 +28,10 @@ export default function GamePlayer({ game }: { game: Game }) {
   const isFrogger = game.id === "frogger";
   const hasSkins = Boolean(SKINS[game.id as GameId]);
 
-  const [skin, setSkin] = useState<SkinId>(() => {
-    if (typeof window === "undefined") return DEFAULT_SKIN;
-    const stored = window.localStorage.getItem("av_skin");
-    if (stored === "clasico" || stored === "neon" || stored === "retro") {
-      return stored;
-    }
-    return DEFAULT_SKIN;
-  });
+  // Arranca siempre en DEFAULT_SKIN para que el primer render del cliente
+  // coincida con el HTML del servidor; la skin guardada se aplica después
+  // de montar (ver efecto abajo), evitando un hydration mismatch.
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -54,9 +50,22 @@ export default function GamePlayer({ game }: { game: Game }) {
   const engineRef = useRef<Engine | null>(null);
 
   // Motor real: se monta una vez sobre el canvas y refleja su estado en el HUD.
+  // La skin guardada en localStorage se lee aquí (client-only, post-montaje)
+  // en vez de en el useState inicial, para que el primer render coincida con
+  // el HTML del servidor y no dispare un hydration mismatch.
   useEffect(() => {
     if (!canvasRef.current) return;
-    const palette = hasSkins ? getPalette(game.id as GameId, skin) : undefined;
+    let initialSkin: SkinId = DEFAULT_SKIN;
+    if (hasSkins) {
+      const stored = window.localStorage.getItem("av_skin");
+      if (stored === "clasico" || stored === "neon" || stored === "retro") {
+        initialSkin = stored;
+      }
+    }
+    setSkin(initialSkin);
+    const palette = hasSkins
+      ? getPalette(game.id as GameId, initialSkin)
+      : undefined;
     const engine = engineFactory(
       canvasRef.current,
       {
