@@ -324,6 +324,58 @@ a {
   display: none;
 }
 
+.user-menu {
+  position: relative;
+  margin-left: 16px;
+}
+.user-menu .auth-btn {
+  margin-left: 0;
+}
+.user-trigger {
+  gap: 8px;
+}
+.user-trigger .avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  color: var(--bg);
+  font-family: var(--pixel);
+  font-size: 9px;
+}
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  z-index: 70;
+}
+.user-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 120ms,
+    background 120ms;
+}
+.user-dropdown-item:hover {
+  color: var(--magenta);
+  background: rgba(255, 0, 110, 0.08);
+}
+
 @media (max-width: 840px) {
   .av-nav {
     padding: 12px 16px;

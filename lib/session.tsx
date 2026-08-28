@@ -1,7 +1,7 @@
 "use client";
 
-// Sesión simulada sobre localStorage, equivalente al estado que app.jsx tenía
-// en el componente App. No hay autenticación real: cualquier nombre entra.
+// Sesión real vía Supabase Auth (email/password, Google, GitHub), con un modo
+// invitado aparte que sigue sin tocar Supabase (solo localStorage).
 
 import {
   createContext,
@@ -11,10 +11,14 @@ import {
   useMemo,
   useState,
 } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { deriveAlias } from "@/lib/auth-alias";
 
 export type SessionUser = {
   /** Alias en mayúsculas, máximo 10 caracteres: "PX_KAI". */
   name: string;
+  email: string | null;
+  isGuest: boolean;
 };
 
 export type SavedScore = {
@@ -24,12 +28,12 @@ export type SavedScore = {
   at: number;
 };
 
-const USER_KEY = "av_user";
+const GUEST_KEY = "av_guest";
 const SCORES_KEY = "av_scores";
 
 type SessionValue = {
   user: SessionUser | null;
-  signIn: (user: SessionUser) => void;
+  signInGuest: (name: string) => void;
   signOut: () => void;
   saveScore: (entry: Omit<SavedScore, "at">) => void;
 };
@@ -37,35 +41,75 @@ type SessionValue = {
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  // Arranca en null en servidor y cliente; av_user se lee tras montar para no
-  // romper la hidratación.
+  const [supabase] = useState(() => createClient());
+  // Arranca en null en servidor y cliente; la sesión real/invitado se resuelve
+  // tras montar para no romper la hidratación.
   const [user, setUser] = useState<SessionUser | null>(null);
 
-  useEffect(() => {
+  const loadGuest = useCallback(() => {
     try {
-      const raw = localStorage.getItem(USER_KEY);
-      // Lectura diferida intencional: av_user no existe en el servidor, así que
-      // el primer render debe pintar sin sesión para no romper la hidratación.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setUser(JSON.parse(raw) as SessionUser);
+      const raw = localStorage.getItem(GUEST_KEY);
+      if (raw) {
+        const guest = JSON.parse(raw) as { name: string };
+        setUser({ name: guest.name, email: null, isGuest: true });
+        return;
+      }
     } catch {
       // JSON corrupto: se descarta y se trata como sin sesión.
     }
+    setUser(null);
   }, []);
 
-  const signIn = useCallback((next: SessionUser) => {
-    setUser(next);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          name: deriveAlias(session.user),
+          email: session.user.email ?? null,
+          isGuest: false,
+        });
+      } else {
+        loadGuest();
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        try {
+          localStorage.removeItem(GUEST_KEY);
+        } catch {}
+        setUser({
+          name: deriveAlias(session.user),
+          email: session.user.email ?? null,
+          isGuest: false,
+        });
+      } else {
+        loadGuest();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase, loadGuest]);
+
+  const signInGuest = useCallback((name: string) => {
+    const alias = (name || "PLAYER1").toUpperCase().slice(0, 10);
+    setUser({ name: alias, email: null, isGuest: true });
     try {
-      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      localStorage.setItem(GUEST_KEY, JSON.stringify({ name: alias }));
     } catch {}
   }, []);
 
   const signOut = useCallback(() => {
     setUser(null);
     try {
-      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(GUEST_KEY);
     } catch {}
-  }, []);
+    if (!user?.isGuest) {
+      supabase.auth.signOut();
+    }
+  }, [supabase, user]);
 
   const saveScore = useCallback((entry: Omit<SavedScore, "at">) => {
     try {
@@ -78,8 +122,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ user, signIn, signOut, saveScore }),
-    [user, signIn, signOut, saveScore],
+    () => ({ user, signInGuest, signOut, saveScore }),
+    [user, signInGuest, signOut, saveScore],
   );
 
   return (
