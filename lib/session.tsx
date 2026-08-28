@@ -1,7 +1,6 @@
 "use client";
 
-// Sesión real vía Supabase Auth (email/password, Google, GitHub), con un modo
-// invitado aparte que sigue sin tocar Supabase (solo localStorage).
+// Sesión real vía Supabase Auth (email/password, Google, GitHub).
 
 import {
   createContext,
@@ -17,8 +16,7 @@ import { deriveAlias } from "@/lib/auth-alias";
 export type SessionUser = {
   /** Alias en mayúsculas, máximo 10 caracteres: "PX_KAI". */
   name: string;
-  email: string | null;
-  isGuest: boolean;
+  email: string;
 };
 
 export type SavedScore = {
@@ -28,12 +26,10 @@ export type SavedScore = {
   at: number;
 };
 
-const GUEST_KEY = "av_guest";
 const SCORES_KEY = "av_scores";
 
 type SessionValue = {
   user: SessionUser | null;
-  signInGuest: (name: string) => void;
   signOut: () => void;
   saveScore: (entry: Omit<SavedScore, "at">) => void;
 };
@@ -42,34 +38,19 @@ const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient());
-  // Arranca en null en servidor y cliente; la sesión real/invitado se resuelve
-  // tras montar para no romper la hidratación.
+  // Arranca en null en servidor y cliente; la sesión real se resuelve tras
+  // montar para no romper la hidratación.
   const [user, setUser] = useState<SessionUser | null>(null);
-
-  const loadGuest = useCallback(() => {
-    try {
-      const raw = localStorage.getItem(GUEST_KEY);
-      if (raw) {
-        const guest = JSON.parse(raw) as { name: string };
-        setUser({ name: guest.name, email: null, isGuest: true });
-        return;
-      }
-    } catch {
-      // JSON corrupto: se descarta y se trata como sin sesión.
-    }
-    setUser(null);
-  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
           name: deriveAlias(session.user),
-          email: session.user.email ?? null,
-          isGuest: false,
+          email: session.user.email ?? "",
         });
       } else {
-        loadGuest();
+        setUser(null);
       }
     });
 
@@ -77,39 +58,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        try {
-          localStorage.removeItem(GUEST_KEY);
-        } catch {}
         setUser({
           name: deriveAlias(session.user),
-          email: session.user.email ?? null,
-          isGuest: false,
+          email: session.user.email ?? "",
         });
       } else {
-        loadGuest();
+        setUser(null);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, loadGuest]);
-
-  const signInGuest = useCallback((name: string) => {
-    const alias = (name || "PLAYER1").toUpperCase().slice(0, 10);
-    setUser({ name: alias, email: null, isGuest: true });
-    try {
-      localStorage.setItem(GUEST_KEY, JSON.stringify({ name: alias }));
-    } catch {}
-  }, []);
+  }, [supabase]);
 
   const signOut = useCallback(() => {
     setUser(null);
-    try {
-      localStorage.removeItem(GUEST_KEY);
-    } catch {}
-    if (!user?.isGuest) {
-      supabase.auth.signOut();
-    }
-  }, [supabase, user]);
+    supabase.auth.signOut();
+  }, [supabase]);
 
   const saveScore = useCallback((entry: Omit<SavedScore, "at">) => {
     try {
@@ -122,8 +86,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ user, signInGuest, signOut, saveScore }),
-    [user, signInGuest, signOut, saveScore],
+    () => ({ user, signOut, saveScore }),
+    [user, signOut, saveScore],
   );
 
   return (
