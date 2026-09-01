@@ -24,8 +24,17 @@ Estado actual: MVP funcional con 5 juegos reales y persistencia de puntajes en S
 - **Next.js 16.2.12 / React 19.2.4, App Router.** Aplica lo indicado en AGENTS.md: esta versión de Next tiene cambios incompatibles frente al conocimiento previo del modelo. Leer el archivo correspondiente en `node_modules/next/dist/docs/01-app/` antes de escribir rutas, obtención de datos, caché, metadata o route handlers — p. ej. `01-getting-started/06-fetching-data.md`, `08-caching.md`, `15-route-handlers.md`. `02-guides/` cubre autenticación, formularios, variables de entorno y migración a cache components.
 - **Tailwind CSS v4** vía `@tailwindcss/postcss`. No existe `tailwind.config.js` — los tokens de diseño viven en `app/globals.css` bajo `@theme inline`. Agregar colores/tipografías ahí, no en un config de JS.
 - **TypeScript strict**, alias de rutas `@/*` → raíz del repositorio.
-- **Supabase** (`@supabase/ssr`, `@supabase/supabase-js`): cliente browser en `lib/supabase/client.ts` (`createBrowserClient`), cliente server en `lib/supabase/server.ts` (`createServerClient`, cookies async de Next 16, `setAll` en try/catch porque aún no hay middleware que las persista). Variables en `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_DB_PASSWORD`. MCP configurado en `.mcp.json` (proyecto `rwiimwxdcieqbwcnfavg`) — usar las herramientas `mcp__supabase__*` para inspeccionar/migrar en vez de tocar el proyecto a mano.
+- **Supabase** (`@supabase/ssr`, `@supabase/supabase-js`): cliente browser en `lib/supabase/client.ts` (`createBrowserClient`), cliente server en `lib/supabase/server.ts` (`createServerClient`, cookies async de Next 16, `setAll` en try/catch porque aún no hay middleware que las persista). Variables en `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_DB_PASSWORD`. MCP configurado en `.mcp.json` apunta al proyecto de **desarrollo** (`rwiimwxdcieqbwcnfavg`) — usar las herramientas `mcp__supabase__*` para inspeccionar/migrar ese entorno en vez de tocarlo a mano.
 - **Resend** para el formulario de contacto: `RESEND_API_KEY`, `CONTACT_TO_EMAIL`.
+
+### Entornos Supabase: dev vs. producción
+
+Hay dos proyectos Supabase separados: **desarrollo** (el de arriba, `rwiimwxdcieqbwcnfavg`) y **producción**. Reglas fijas:
+
+- El MCP de Supabase (`.mcp.json`) apunta solo a desarrollo. **Nunca editar ese archivo para que apunte a producción** — el server MCP no es de solo lectura (incluye `database`, `development`, `branching`, `functions`).
+- Claude no debe pedir, recibir, ni almacenar la `service_role` key de producción, ni aplicar migraciones o escrituras ahí. Toda la configuración de producción (Dashboard, Auth providers, `prod-bootstrap.sql`) la ejecuta el usuario a mano.
+- **Excepción de solo lectura**: existe un rol dedicado `arcade_readonly` (`supabase/prod-readonly-role.sql`) consumido vía el connection pooler de producción, con la URL en `SUPABASE_PROD_READONLY_URL` (`.env.local`, nunca en el repo ni impresa en respuestas). Solo `SELECT` sobre `public`; ver detalle y candados en `supabase/README.md`. Fuera de esto, Claude sigue sin acceso de escritura ni `project_ref`/credenciales de escritura de producción.
+- El SQL de esquema vive versionado en `supabase/prod-bootstrap.sql` (esquema de escritura) y `supabase/prod-readonly-role.sql` (rol de solo lectura); el checklist de configuración manual (Auth providers, URLs de redirect, env vars) está en `supabase/README.md`. Cualquier cambio de esquema futuro se aplica primero a dev vía `mcp__supabase__*`, luego se refleja en esos `.sql`, y el usuario lo replica a mano en producción.
 
 ## Skills y agentes
 
@@ -71,7 +80,7 @@ Pipeline completo para un juego nuevo: `game-planner → spec-juego → /spec-im
 
 ### Supabase / leaderboard
 
-- Tabla única `public.scores` (`game_id`, `player_name`, `score` con `CHECK (score > 0 AND score < 10000000)`, `created_at`), RLS habilitado con políticas públicas de `SELECT`/`INSERT` para `anon`/`authenticated`. No hay carpeta `supabase/` ni migraciones `.sql` en el repo — el SQL vive documentado dentro de `specs/06-leaderboard-asteroides-supabase.md` y se aplicó vía `mcp__supabase__apply_migration`.
+- Tabla única `public.scores` (`game_id`, `player_name`, `score` con `CHECK (score > 0 AND score < 10000000)`, `created_at`, `user_id`), RLS habilitado con `scores_public_select` (SELECT, anon+authenticated) y `scores_authenticated_insert` (INSERT, authenticated, `auth.uid() = user_id`). El SQL histórico de dev vive documentado dentro de `specs/06-leaderboard-asteroides-supabase.md` y `specs/27-seguridad-auditoria-integral.md` (se aplicó vía `mcp__supabase__apply_migration`); el esquema versionado y reproducible para producción está en `supabase/prod-bootstrap.sql` (ver `supabase/README.md`).
 - `lib/scores.ts` centraliza el acceso: `fetchTopScores`, `fetchRecentScores`, `fetchTopScoresAllGames`, `insertScore`. Tipos `RealScoreRow`/`RecentScoreRow`. No crear queries sueltas a `scores` fuera de este archivo.
 - Consumidores: `app/juegos/[id]/page.tsx` (server, top 10), `hall-of-fame.tsx` (cliente, top 12 por pestaña), `home.tsx` (server, ticker y top jugadores), `game-player.tsx` (inserta puntaje al finalizar partida, los 5 juegos).
 
